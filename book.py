@@ -178,9 +178,11 @@ class EditorDoc:
 
         else:  # mouse pos
             x1, y1 = caret
-            # is after text
-            tl = self.ed.get_text_line(y1)
-            if x1 >= len(tl):       return
+            
+            ## is after text (this will disable autocompletion (ctrl+space) at the end of the line!)
+            #tl = self.ed.get_text_line(y1)
+            #if x1 >= len(tl):       return
+            
             # is in comment or string
             if self.ed.get_token(TOKEN_GET_KIND, x1, y1) in ('s','c'):      return
 
