@@ -1071,6 +1071,8 @@ DIAG_BM_KINDS = {
 }
 DIAG_DEFAULT_SEVERITY = DiagnosticSeverity.INFORMATION # *shrug*
 
+diags_busy = False
+
 class DiagnosticsMan:
     """ * Command.on_tab_change() ->
             <lang>.on_ed_shown(<new visible editor = eddoc>) ->
@@ -1123,6 +1125,14 @@ class DiagnosticsMan:
                 self.dirtys.add(uri)
 
     def _apply_diagnostics(self, ed, diag_list):
+        ### protect from recursion (because app_idle() is used below)
+        global diags_busy
+        if diags_busy:
+            timer_proc(TIMER_START_ONE, lambda *args, **vargs: self._apply_diagnostics(ed, diag_list), 250)
+            return
+        diags_busy = True
+        ###
+        
         self.logger.clear_diagnostics()
         if self._linttype  or  self._highlight_bg:
             self._clear_old(ed)
@@ -1141,7 +1151,8 @@ class DiagnosticsMan:
 
             err_ranges = []  # tuple(x,y,len)
             # apply gutter to editor
-            for nline,diags in line_diags.items():
+            for i,(nline,diags) in enumerate(line_diags.items()):
+                i % 25 == 0 and app_idle() # process UI messages after every 25th added diag line
                 severity_la = lambda d: d.severity or 9
                 if self._linttype == DiagnosticsMan.LINT_DECOR:
                     decor_severity = min(severity_la(d) for d in diags) # most severe severity  for decor
@@ -1205,7 +1216,7 @@ class DiagnosticsMan:
 
                 ed.attr(MARKERS_ADD_MANY,  tag=DIAG_BM_TAG,  x=xs,  y=ys,  len=lens,
                             color_border=err_col,  border_down=self._underline_style)
-
+        diags_busy = False
 
     def _get_gutter_data(self, diag_list):
         line_diags = defaultdict(list) # line -> list of diagnostics
