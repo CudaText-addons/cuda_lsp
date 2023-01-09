@@ -1072,6 +1072,7 @@ DIAG_BM_KINDS = {
 DIAG_DEFAULT_SEVERITY = DiagnosticSeverity.INFORMATION # *shrug*
 
 diags_busy = False
+diag_queue = []
 
 class DiagnosticsMan:
     """ * Command.on_tab_change() ->
@@ -1127,8 +1128,13 @@ class DiagnosticsMan:
     def _apply_diagnostics(self, ed, diag_list):
         ### protect from recursion (because app_idle() is used below)
         global diags_busy
+        global diag_queue
+        if diag_queue and diag_list in diag_queue:
+            diag_queue.pop() 
+            return
         if diags_busy:
             timer_proc(TIMER_START_ONE, lambda *args, **vargs: self._apply_diagnostics(ed, diag_list), 250)
+            diag_queue.append(diag_list)
             return
         diags_busy = True
         ###
@@ -1217,6 +1223,7 @@ class DiagnosticsMan:
                 ed.attr(MARKERS_ADD_MANY,  tag=DIAG_BM_TAG,  x=xs,  y=ys,  len=lens,
                             color_border=err_col,  border_down=self._underline_style)
         diags_busy = False
+        diag_queue = []
 
     def _get_gutter_data(self, diag_list):
         line_diags = defaultdict(list) # line -> list of diagnostics
