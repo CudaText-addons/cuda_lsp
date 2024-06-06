@@ -60,6 +60,7 @@ opt_hover_additional_commands = [
     "Declaration",
     "Type definition",
 ]
+opt_hover_with_ctrl = True
 opt_cudatext_in_py_env = False
 opt_lint_type = 'dc'
 opt_lint_underline_style = 2  # solid 0, dotted 1, dashes 2, wave 3
@@ -412,7 +413,7 @@ class Command:
     def on_mouse_stop(self, ed_self, x, y):
         if not opt_enable_mouse_hover:      return
         # require Control pressed
-        if app_proc(PROC_GET_KEYSTATE, '') != 'c':
+        if opt_hover_with_ctrl and (app_proc(PROC_GET_KEYSTATE, '') != 'c'):
             return
         if Hint.is_under_cursor()  or  Hint.is_visible():      return
 
@@ -763,6 +764,7 @@ class Command:
         global opt_send_change_on_request
         global opt_hover_max_lines
         global opt_hover_additional_commands
+        global opt_hover_with_ctrl
         global opt_cudatext_in_py_env
         global opt_lint_type
         global opt_lint_underline_style
@@ -800,6 +802,7 @@ class Command:
             opt_send_change_on_request = j.get('send_change_on_request', opt_send_change_on_request)
             opt_hover_max_lines = j.get('hover_dlg_max_lines', opt_hover_max_lines)
             opt_hover_additional_commands = j.get('hover_additional_commands', opt_hover_additional_commands)
+            opt_hover_with_ctrl = j.get('hover_with_ctrl', opt_hover_with_ctrl)
             opt_cudatext_in_py_env = j.get('cudatext_in_py_env', opt_cudatext_in_py_env)
             opt_lint_type = j.get('lint_type', opt_lint_type)
             opt_auto_append_bracket = j.get('auto_append_bracket', opt_auto_append_bracket)
@@ -903,6 +906,7 @@ class Command:
             'enable_mouse_hover':        opt_enable_mouse_hover,
             'hover_dlg_max_lines':       opt_hover_max_lines,
             'hover_additional_commands': opt_hover_additional_commands,
+            'hover_with_ctrl':           opt_hover_with_ctrl,
             'cudatext_in_py_env':        opt_cudatext_in_py_env,
             'lint_type':                 opt_lint_type,
             'lint_underline_style':      opt_lint_underline_style,

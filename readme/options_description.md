@@ -20,6 +20,8 @@
     * "declaration"
     * "type definition"
 
+* hover_with_ctrl - if 'true', Ctrl-key must be pressed when you want to show the hover dialog (by moving and stopping the mouse)
+
 * cudatext_in_py_env - add CudaText API to Python server
 
 * lint_type - lint display manner; string, combination of the following characters:

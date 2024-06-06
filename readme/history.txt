@@ -1,3 +1,6 @@
+2024.06.06
++ add: option "hover_with_ctrl"
+
 2024.03.01 (by @DUOLabs333)
 + add: new config option to disable markers when adding snippets
 
