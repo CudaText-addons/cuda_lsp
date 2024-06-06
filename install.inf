@@ -4,7 +4,7 @@ desc=Support LSP (Language Server Protocol) servers, for different languages
 type=cudatext-plugin
 subdir=cuda_lsp
 homepage=https://github.com/CudaText-addons/cuda_lsp
-api=1.0.392
+api=1.0.448
 
 [item2]
 section=events
