@@ -1416,14 +1416,28 @@ class DiagnosticsMan:
                     text = d['text']
                     text = text.split('\1')[1] if '\1' in text else text
                     text = split_text_by_length(text, 50, prepare_for_corner=True)
-                    
-                    ed_self.set_prop(PROP_CORNER_FONT_NAME, 'default')
-                    font_size_opt = 'font_size'+app_proc(PROC_GET_OS_SUFFIX, '')
-                    ed_self.set_prop(PROP_CORNER_FONT_SIZE, appx.get_opt(font_size_opt, 10)+3)
 
-                    ed_self.set_prop(PROP_CORNER_COLOR_BACK, appx.html_color_to_int('ffffe1'))
-                    ed_self.set_prop(PROP_CORNER_COLOR_BORDER, appx.html_color_to_int('aaa'))
-                    ed_self.set_prop(PROP_CORNER_TEXT, text)
+                    # todo: use CORNER2 if caret is in the bottom half
+                    if True:
+                        __PROP_CORNER_FONT_NAME = PROP_CORNER_FONT_NAME
+                        __PROP_CORNER_FONT_SIZE = PROP_CORNER_FONT_SIZE
+                        __PROP_CORNER_COLOR_BACK = PROP_CORNER_COLOR_BACK
+                        __PROP_CORNER_COLOR_BORDER = PROP_CORNER_COLOR_BORDER
+                        __PROP_CORNER_TEXT = PROP_CORNER_TEXT
+                    else:
+                        __PROP_CORNER_FONT_NAME = PROP_CORNER2_FONT_NAME
+                        __PROP_CORNER_FONT_SIZE = PROP_CORNER2_FONT_SIZE
+                        __PROP_CORNER_COLOR_BACK = PROP_CORNER2_COLOR_BACK
+                        __PROP_CORNER_COLOR_BORDER = PROP_CORNER2_COLOR_BORDER
+                        __PROP_CORNER_TEXT = PROP_CORNER2_TEXT
+
+                    font_size_opt = 'font_size'+app_proc(PROC_GET_OS_SUFFIX, '')
+                    ed_self.set_prop(__PROP_CORNER_FONT_NAME, 'default')
+                    ed_self.set_prop(__PROP_CORNER_FONT_SIZE, appx.get_opt(font_size_opt, 10)+3)
+
+                    ed_self.set_prop(__PROP_CORNER_COLOR_BACK, appx.html_color_to_int('ffffe1'))
+                    ed_self.set_prop(__PROP_CORNER_COLOR_BORDER, appx.html_color_to_int('aaa'))
+                    ed_self.set_prop(__PROP_CORNER_TEXT, text)
         if not decor_found:
             ed_self.set_prop(PROP_CORNER_TEXT, '')
     
