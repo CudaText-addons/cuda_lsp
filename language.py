@@ -1438,9 +1438,14 @@ class DiagnosticsMan:
 
                     ed_self.set_prop(__PROP_CORNER_COLOR_BACK, appx.html_color_to_int('ffffe1'))
                     ed_self.set_prop(__PROP_CORNER_COLOR_BORDER, appx.html_color_to_int('aaa'))
+
+                    ed_self.set_prop(PROP_CORNER_TEXT, '')
+                    ed_self.set_prop(PROP_CORNER2_TEXT, '')
                     ed_self.set_prop(__PROP_CORNER_TEXT, text)
+
         if not decor_found:
-            ed_self.set_prop(__PROP_CORNER_TEXT, '')
+            ed_self.set_prop(PROP_CORNER_TEXT, '')
+            ed_self.set_prop(PROP_CORNER2_TEXT, '')
     
     def _get_gutter_data(self, diag_list):
         line_diags = defaultdict(list) # line -> list of diagnostics
