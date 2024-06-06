@@ -1409,18 +1409,12 @@ class DiagnosticsMan:
         y = ed_self.get_carets()[0][1]
 
         # todo: use CORNER2 if caret is in the bottom half
-        if True:
-            __PROP_CORNER_FONT_NAME = PROP_CORNER_FONT_NAME
-            __PROP_CORNER_FONT_SIZE = PROP_CORNER_FONT_SIZE
-            __PROP_CORNER_COLOR_BACK = PROP_CORNER_COLOR_BACK
-            __PROP_CORNER_COLOR_BORDER = PROP_CORNER_COLOR_BORDER
-            __PROP_CORNER_TEXT = PROP_CORNER_TEXT
-        else:
-            __PROP_CORNER_FONT_NAME = PROP_CORNER2_FONT_NAME
-            __PROP_CORNER_FONT_SIZE = PROP_CORNER2_FONT_SIZE
-            __PROP_CORNER_COLOR_BACK = PROP_CORNER2_COLOR_BACK
-            __PROP_CORNER_COLOR_BORDER = PROP_CORNER2_COLOR_BORDER
-            __PROP_CORNER_TEXT = PROP_CORNER2_TEXT
+        use_bottom = True
+        __PROP_CORNER_FONT_NAME = PROP_CORNER_FONT_NAME if use_bottom else PROP_CORNER2_FONT_NAME
+        __PROP_CORNER_FONT_SIZE = PROP_CORNER_FONT_SIZE if use_bottom else PROP_CORNER2_FONT_SIZE
+        __PROP_CORNER_COLOR_BACK = PROP_CORNER_COLOR_BACK if use_bottom else PROP_CORNER2_COLOR_BACK
+        __PROP_CORNER_COLOR_BORDER = PROP_CORNER_COLOR_BORDER if use_bottom else PROP_CORNER2_COLOR_BORDER
+        __PROP_CORNER_TEXT = PROP_CORNER_TEXT if use_bottom else PROP_CORNER2_TEXT
 
         decor_list = ed_self.decor(DECOR_GET_ALL, y)
         decor_found = False
