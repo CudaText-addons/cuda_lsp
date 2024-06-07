@@ -1409,8 +1409,8 @@ class DiagnosticsMan:
         x, y, x2, y2 = ed_self.get_carets()[0]
 
         rect_x1, rect_y1, rect_x2, rect_y2 = ed_self.get_prop(PROP_RECT_TEXT)
-        caret_x, caret_y = ed_self.convert(CONVERT_CARET_TO_PIXELS, x=x, y=y)
-        use_bottom_corner = caret_y < rect_y1 + (rect_y2-rect_y1) * 2 // 3
+        pos_x, pos_y = ed_self.convert(CONVERT_CARET_TO_PIXELS, x=x, y=y)
+        use_bottom_corner = pos_y < rect_y1 + (rect_y2-rect_y1) * 2 // 3
          
         __PROP_CORNER_FONT_NAME    = PROP_CORNER_FONT_NAME    if use_bottom_corner else PROP_CORNER2_FONT_NAME
         __PROP_CORNER_FONT_SIZE    = PROP_CORNER_FONT_SIZE    if use_bottom_corner else PROP_CORNER2_FONT_SIZE
