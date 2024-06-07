@@ -1,5 +1,6 @@
-2024.06.06
+2024.06.07 (by Alexey T.)
 + add: option "hover_with_ctrl"
+- fix: on Linux, app is bringing to foreground after switching to eg Firefox and moving mouse there
 
 2024.03.01 (by @DUOLabs333)
 + add: new config option to disable markers when adding snippets
