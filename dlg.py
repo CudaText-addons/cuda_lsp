@@ -263,6 +263,8 @@ class Hint:
 
     @classmethod
     def hide_check_timer(cls, tag='', info=''):
+        global app_active
+
         # hide if not over dialog  and  cursor moved at least ~15px
         left_button_down = 'L' in app_proc(PROC_GET_KEYSTATE, '')
         
@@ -280,7 +282,8 @@ class Hint:
         
         if not cls.is_visible(): #stop the timer if dialog was already closed (could be closed by autocompletion)
             timer_proc(TIMER_STOP, Hint.hide_check_timer, 250, tag='')
-        elif not is_mouse_in_form(cls.h) \
+        elif app_active \
+             and not is_mouse_in_form(cls.h) \
              and cursor_dist(cls.cursor_pos) > cls.cursor_margin \
              and not left_button_down:
             timer_proc(TIMER_STOP, Hint.hide_check_timer, 250, tag='')
