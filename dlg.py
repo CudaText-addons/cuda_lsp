@@ -898,12 +898,13 @@ class SignaturesDialog:
             if x < mon_x1:   x = mon_x1
             if y < mon_y1:   y = mon_y1
             
-            dlg_proc(cls.h, DLG_PROP_SET, prop={ 'color': cls.color_bg })
-            pos_str = '{},{},{},{}'.format(x,y,w,h)
-            if cls.is_visible():
-                dlg_proc(cls.h, DLG_POS_SET_FROM_STR, prop=pos_str)
-            else:
-                dlg_proc(cls.h, DLG_PROP_SET, prop={ 'x':x, 'y':y, 'w':w, 'h':h })
+            dlg_proc(cls.h, DLG_PROP_SET, prop={
+                'x': x,
+                'y': y,
+                'w': w,
+                'h': h,
+                'color': cls.color_bg,
+                })
     
     @classmethod
     def set_text(cls, signatures):
