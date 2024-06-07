@@ -451,6 +451,10 @@ class Command:
 
     def on_app_deactivate(self, ed_self):
         dlg.app_active = False
+
+        timer_proc(TIMER_STOP, Hint.hide_check_timer, 250, tag='')
+        Hint.hide()
+
         SignaturesDialog.hide()
         
     def on_tab_change(self, ed_self):

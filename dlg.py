@@ -290,6 +290,7 @@ class Hint:
 
             cls.hide()
             ed.focus()
+            #print('ed.focus in hide_check_timer()')
         else:
             cls.cursor_pos = app_proc(PROC_GET_MOUSE_POS, '')                
 
@@ -1073,6 +1074,7 @@ class SignaturesDialog:
         cls.wrap_info_loaded = True
         if app_active:
             ed.focus()
+            #print('ed.focus in unfocus()')
         if api_ver >= '1.0.429':
             #print('restoring to',cls.dim_unfocused_value)
             ed.set_prop(PROP_DIM_UNFOCUSED, cls.dim_unfocused_value)
