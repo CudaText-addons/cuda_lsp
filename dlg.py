@@ -833,24 +833,35 @@ class SignaturesDialog:
         if cls.h and cls.memo:
             mon_x1, mon_y1, mon_x2, mon_y2 = app_proc(PROC_COORD_MONITOR,0)
             screen_w, screen_h = (mon_x2 - mon_x1, mon_y2 - mon_y1)
-            
+
             dlg_proc(cls.h, DLG_CTL_PROP_SET, name='memo', prop={
                 'w': screen_w, 'h': screen_h
             })
+
+            # tooltip must have the same font_size / scale as editor
+            font_prop = ed.get_prop(PROP_FONT, '')
+            scale = ed.get_prop(PROP_SCALE_FONT, '')
+            cls.memo.set_prop(PROP_FONT, font_prop)
+            cls.memo.set_prop(PROP_SCALE_FONT, scale)
+
             wrapped_lines = 0
             while True:
                 app_idle()
                 if cls.wrap_info_loaded:
                     wrap_info = cls.memo.get_wrapinfo()
-                    wrapped_lines = len(wrap_info)
+                    wrapped_lines = max(1, len(wrap_info))
                     break 
-            
-            max_line_len = 10
+
+            #max_line_len = 10
+            # for first painting of tooltip [Linux qt5]
+            max_line_len = cls.memo.get_line_len(0)
             for line in wrap_info:
                 max_line_len = max(max_line_len, line['len'])
 
             cell_x, cell_y = cls.memo.get_prop(PROP_CELL_SIZE, 0)
             ed_cell_x, ed_cell_y = ed.get_prop(PROP_CELL_SIZE, 0)
+            cell_x = max(cell_x, 7) # for first painting of tooltip [Linux qt5]
+            cell_y = max(cell_y, 16)
             h = wrapped_lines * cell_y + (cls.spacing*4)
             w = max_line_len * cell_x + (cls.spacing*4)
             
