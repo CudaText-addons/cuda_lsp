@@ -13,7 +13,7 @@ from cudax_lib import _json_loads
 from cudax_lib import get_translation
 _ = get_translation(__file__)  # I18N
 
-from .dlg import Hint, SignaturesDialog
+from .dlg import Hint, SignaturesDialog, app_active
 from .util import (
         lex2langid,
         update_lexmap,
@@ -445,7 +445,13 @@ class Command:
     def on_goto_def(self, ed_self):
         self.call_definition(ed_self)
 
+    def on_app_activate(self, ed_self):
+        global app_active
+        app_active = True
+
     def on_app_deactivate(self, ed_self):
+        global app_active
+        app_active = False
         SignaturesDialog.hide()
         
     def on_tab_change(self, ed_self):

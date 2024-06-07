@@ -16,6 +16,7 @@ LogMsg = namedtuple('LogMsg', 'msg type severity')
 _   = apx.get_translation(__file__)  # I18N
 
 api_ver = app_api_version()
+app_active = True
 
 FORM_W = 550
 FORM_H = 350
