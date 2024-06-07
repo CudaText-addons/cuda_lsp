@@ -264,7 +264,7 @@ class Hint:
     @classmethod
     def hide_check_timer(cls, tag='', info=''):
         global app_active
-
+        
         # hide if not over dialog  and  cursor moved at least ~15px
         left_button_down = 'L' in app_proc(PROC_GET_KEYSTATE, '')
         
@@ -1069,8 +1069,10 @@ class SignaturesDialog:
 
     @classmethod
     def unfocus(cls, tag='', info=''):
+        global app_active
         cls.wrap_info_loaded = True
-        ed.focus()
+        if app_active:
+            ed.focus()
         if api_ver >= '1.0.429':
             #print('restoring to',cls.dim_unfocused_value)
             ed.set_prop(PROP_DIM_UNFOCUSED, cls.dim_unfocused_value)
