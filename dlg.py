@@ -170,6 +170,7 @@ class Hint:
         ed_size_x = r - l # text area sizes - to not obscure other ed-controls
 
         caret_loc_px = ed.convert(CONVERT_CARET_TO_PIXELS, x=caret[0], y=caret[1])
+        if caret_loc_px is None: return
         top_hint = caret_loc_px[1]-t > b-caret_loc_px[1] # space up is larger than down
         y0,y1 = (t, caret_loc_px[1])  if top_hint else  (caret_loc_px[1], b)
         space_h = y1-y0 - FORM_GAP*2
