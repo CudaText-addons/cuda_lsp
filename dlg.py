@@ -25,6 +25,17 @@ FORM_GAP = 4
 
 CURSOR_MOVE_TOLERANCE = 30
 
+def mix_colors(c1, c2):
+    r1 = c1 & 0xFF
+    g1 = c1 >> 8 & 0xFF
+    b1 = c1 >> 16 & 0xFF
+
+    r2 = c2 & 0xFF
+    g2 = c2 >> 8 & 0xFF
+    b2 = c2 >> 16 & 0xFF
+
+    return (((b1+b2)//2 & 0xff) << 16) | (((g1+g2)//2 & 0xff) << 8) | ((r1+r2)//2 & 0xff);
+    
 def is_mouse_in_form(h_dlg):
     prop = dlg_proc(h_dlg, DLG_PROP_GET)
     if not prop['vis']: return False
@@ -889,11 +900,7 @@ class SignaturesDialog:
             cls.color_font = colors['ListFont']['color']
             cls.color_bg = colors['ListBg']['color']
             cls.color_hilite = colors['ListFontHotkey']['color']
-            
-            # dimmed -> (color1 + color2) / 2
-            r1 = cls.color_font & 0xFF  ;g1 = cls.color_font >> 8 & 0xFF    ;b1 = cls.color_font >> 16 & 0xFF
-            r2 = cls.color_bg & 0xFF    ;g2 = cls.color_bg >> 8 & 0xFF      ;b2 = cls.color_bg >> 16 & 0xFF
-            cls.color_dimmed = (((b1+b2)//2 & 0xff) << 16) | (((g1+g2)//2 & 0xff) << 8) | ((r1+r2)//2 & 0xff);
+            cls.color_dimmed = mix_colors(cls.color_font, cls.color_bg)
 
         cls.memo.set_prop(PROP_COLOR, (COLOR_ID_TextFont, cls.color_font))
         cls.memo.set_prop(PROP_COLOR, (COLOR_ID_TextBg, cls.color_bg))
