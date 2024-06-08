@@ -1,6 +1,8 @@
 2024.06.07 (by Alexey T.)
 + add: option "hover_with_ctrl"
 - fix: plugin can bring app to foreground after switching to another app
+- fix: function-signature hint must have the same font-size as editor
+- fix: Qt5: first showing of function-signature hint has too small size
 
 2024.03.01 (by @DUOLabs333)
 + add: new config option to disable markers when adding snippets
