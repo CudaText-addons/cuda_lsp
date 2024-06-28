@@ -1,3 +1,6 @@
+2024.06.28
+* change: func-signature-tooltip is now themable (uses listbox colors)
+
 2024.06.07 (by Alexey T.)
 + add: option "hover_with_ctrl"
 - fix: plugin can bring app to foreground after switching to another app

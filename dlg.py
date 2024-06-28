@@ -821,7 +821,7 @@ class PanelLog:
 
 class SignaturesDialog:
     
-    themed = False
+    themed = True
     color_font = 0
     color_bg = apx.html_color_to_int('ffffe1')
     color_dimmed = apx.html_color_to_int('909090')
