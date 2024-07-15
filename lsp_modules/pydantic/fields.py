@@ -28,12 +28,12 @@ from typing import (
 
 from typing_extensions import Annotated, Final
 
-from . import errors as errors_
-from .class_validators import Validator, make_generic_validator, prep_validators
-from .error_wrappers import ErrorWrapper
-from .errors import ConfigError, InvalidDiscriminator, MissingDiscriminator, NoneIsNotAllowedError
-from .types import Json, JsonWrapper
-from .typing import (
+from pydantic import errors as errors_
+from pydantic.class_validators import Validator, make_generic_validator, prep_validators
+from pydantic.error_wrappers import ErrorWrapper
+from pydantic.errors import ConfigError, InvalidDiscriminator, MissingDiscriminator, NoneIsNotAllowedError
+from pydantic.types import Json, JsonWrapper
+from pydantic.typing import (
     NoArgAnyCallable,
     convert_generics,
     display_as_type,
@@ -48,7 +48,7 @@ from .typing import (
     is_union,
     new_type_supertype,
 )
-from .utils import (
+from pydantic.utils import (
     PyObjectStr,
     Representation,
     ValueItems,
@@ -59,7 +59,7 @@ from .utils import (
     sequence_like,
     smart_deepcopy,
 )
-from .validators import constant_validator, dict_validator, find_validators, validate_json
+from pydantic.validators import constant_validator, dict_validator, find_validators, validate_json
 
 Required: Any = Ellipsis
 
@@ -83,11 +83,11 @@ class UndefinedType:
 Undefined = UndefinedType()
 
 if TYPE_CHECKING:
-    from .class_validators import ValidatorsList
-    from .config import BaseConfig
-    from .error_wrappers import ErrorList
-    from .types import ModelOrDc
-    from .typing import AbstractSetIntStr, MappingIntStrAny, ReprArgs
+    from pydantic.class_validators import ValidatorsList
+    from pydantic.config import BaseConfig
+    from pydantic.error_wrappers import ErrorList
+    from pydantic.types import ModelOrDc
+    from pydantic.typing import AbstractSetIntStr, MappingIntStrAny, ReprArgs
 
     ValidateReturn = Tuple[Optional[Any], Optional[ErrorList]]
     LocStr = Union[Tuple[Union[int, str], ...], str]
@@ -178,7 +178,6 @@ class FieldInfo(Representation):
         self.extra = kwargs
 
     def __repr_args__(self) -> 'ReprArgs':
-
         field_defaults_to_hide: Dict[str, Any] = {
             'repr': True,
             **self.__field_constraints__,
@@ -405,7 +404,6 @@ class ModelField(Representation):
         alias: Optional[str] = None,
         field_info: Optional[FieldInfo] = None,
     ) -> None:
-
         self.name: str = name
         self.has_alias: bool = alias is not None
         self.alias: str = alias if alias is not None else name
@@ -492,7 +490,7 @@ class ModelField(Representation):
         class_validators: Optional[Dict[str, Validator]],
         config: Type['BaseConfig'],
     ) -> 'ModelField':
-        from .schema import get_annotation_from_field_info
+        from pydantic.schema import get_annotation_from_field_info
 
         field_info, value = cls._get_field_info(name, annotation, value, config)
         required: 'BoolUndefined' = Undefined
@@ -852,7 +850,6 @@ class ModelField(Representation):
     def validate(
         self, v: Any, values: Dict[str, Any], *, loc: 'LocStr', cls: Optional['ModelOrDc'] = None
     ) -> 'ValidateReturn':
-
         assert self.type_.__class__ is not DeferredType
 
         if self.type_.__class__ is ForwardRef:
@@ -943,7 +940,7 @@ class ModelField(Representation):
         elif self.shape == SHAPE_TUPLE_ELLIPSIS:
             converted = tuple(result)
         elif self.shape == SHAPE_DEQUE:
-            converted = deque(result)
+            converted = deque(result, maxlen=getattr(v, 'maxlen', None))
         elif self.shape == SHAPE_SEQUENCE:
             if isinstance(v, tuple):
                 converted = tuple(result)
@@ -952,7 +949,7 @@ class ModelField(Representation):
             elif isinstance(v, Generator):
                 converted = iter(result)
             elif isinstance(v, deque):
-                converted = deque(result)
+                converted = deque(result, maxlen=getattr(v, 'maxlen', None))
         return converted, None
 
     def _validate_iterable(
@@ -1107,7 +1104,13 @@ class ModelField(Representation):
         assert self.discriminator_alias is not None
 
         try:
-            discriminator_value = v[self.discriminator_alias]
+            try:
+                discriminator_value = v[self.discriminator_alias]
+            except KeyError:
+                if self.model_config.allow_population_by_field_name:
+                    discriminator_value = v[self.discriminator_key]
+                else:
+                    raise
         except KeyError:
             return v, ErrorWrapper(MissingDiscriminator(discriminator_key=self.discriminator_key), loc)
         except TypeError:
@@ -1157,7 +1160,7 @@ class ModelField(Representation):
         """
         Whether the field is "complex" eg. env variables should be parsed as JSON.
         """
-        from .main import BaseModel
+        from pydantic.main import BaseModel
 
         return (
             self.shape != SHAPE_SINGLETON

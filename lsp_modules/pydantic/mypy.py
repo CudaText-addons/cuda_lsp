@@ -57,6 +57,7 @@ from mypy.types import (
     Type,
     TypeOfAny,
     TypeType,
+    TypeVarId,
     TypeVarType,
     UnionType,
     get_proper_type,
@@ -75,11 +76,12 @@ except ImportError:  # pragma: no cover
 
 CONFIGFILE_KEY = 'pydantic-mypy'
 METADATA_KEY = 'pydantic-mypy-metadata'
-BASEMODEL_FULLNAME = 'pydantic.main.BaseModel'
-BASESETTINGS_FULLNAME = 'pydantic.env_settings.BaseSettings'
-MODEL_METACLASS_FULLNAME = 'pydantic.main.ModelMetaclass'
-FIELD_FULLNAME = 'pydantic.fields.Field'
-DATACLASS_FULLNAME = 'pydantic.dataclasses.dataclass'
+_NAMESPACE = __name__[:-5]  # 'pydantic' in 1.10.X, 'pydantic.v1' in v2.X
+BASEMODEL_FULLNAME = f'{_NAMESPACE}.main.BaseModel'
+BASESETTINGS_FULLNAME = f'{_NAMESPACE}.env_settings.BaseSettings'
+MODEL_METACLASS_FULLNAME = f'{_NAMESPACE}.main.ModelMetaclass'
+FIELD_FULLNAME = f'{_NAMESPACE}.fields.Field'
+DATACLASS_FULLNAME = f'{_NAMESPACE}.dataclasses.dataclass'
 
 
 def parse_mypy_version(version: str) -> Tuple[int, ...]:
@@ -335,7 +337,7 @@ class PydanticModelTransformer:
                 if (
                     isinstance(first_dec, CallExpr)
                     and isinstance(first_dec.callee, NameExpr)
-                    and first_dec.callee.fullname == 'pydantic.class_validators.validator'
+                    and first_dec.callee.fullname == f'{_NAMESPACE}.class_validators.validator'
                 ):
                     sym.node.func.is_class = True
 
@@ -493,15 +495,32 @@ class PydanticModelTransformer:
         obj_type = ctx.api.named_type(f'{BUILTINS_NAME}.object')
         self_tvar_name = '_PydanticBaseModel'  # Make sure it does not conflict with other names in the class
         tvar_fullname = ctx.cls.fullname + '.' + self_tvar_name
-        tvd = TypeVarDef(self_tvar_name, tvar_fullname, -1, [], obj_type)
-        self_tvar_expr = TypeVarExpr(self_tvar_name, tvar_fullname, [], obj_type)
+        if MYPY_VERSION_TUPLE >= (1, 4):
+            tvd = TypeVarType(
+                self_tvar_name,
+                tvar_fullname,
+                TypeVarId(-1),
+                [],
+                obj_type,
+                AnyType(TypeOfAny.from_omitted_generics),  # type: ignore[arg-type]
+            )
+            self_tvar_expr = TypeVarExpr(
+                self_tvar_name,
+                tvar_fullname,
+                [],
+                obj_type,
+                AnyType(TypeOfAny.from_omitted_generics),  # type: ignore[arg-type]
+            )
+        else:
+            tvd = TypeVarDef(self_tvar_name, tvar_fullname, -1, [], obj_type)
+            self_tvar_expr = TypeVarExpr(self_tvar_name, tvar_fullname, [], obj_type)
         ctx.cls.info.names[self_tvar_name] = SymbolTableNode(MDEF, self_tvar_expr)
 
         # Backward-compatible with TypeVarDef from Mypy 0.910.
         if isinstance(tvd, TypeVarType):
             self_type = tvd
         else:
-            self_type = TypeVarType(tvd)  # type: ignore[call-arg]
+            self_type = TypeVarType(tvd)
 
         add_method(
             ctx,

@@ -3,7 +3,7 @@ import math
 import re
 import warnings
 from datetime import date
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from enum import Enum
 from pathlib import Path
 from types import new_class
@@ -28,10 +28,10 @@ from typing import (
 from uuid import UUID
 from weakref import WeakSet
 
-from . import errors
-from .datetime_parse import parse_date
-from .utils import import_string, update_not_none
-from .validators import (
+from pydantic import errors
+from pydantic.datetime_parse import parse_date
+from pydantic.utils import import_string, update_not_none
+from pydantic.validators import (
     bytes_validator,
     constr_length_validator,
     constr_lower,
@@ -123,9 +123,9 @@ StrIntFloat = Union[str, int, float]
 if TYPE_CHECKING:
     from typing_extensions import Annotated
 
-    from .dataclasses import Dataclass
-    from .main import BaseModel
-    from .typing import CallableGenerator
+    from pydantic.dataclasses import Dataclass
+    from pydantic.main import BaseModel
+    from pydantic.typing import CallableGenerator
 
     ModelOrDc = Type[Union[BaseModel, Dataclass]]
 
@@ -481,6 +481,7 @@ else:
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ SET TYPES ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+
 # This types superclass should be Set[T], but cython chokes on that...
 class ConstrainedSet(set):  # type: ignore
     # Needed for pydantic to detect that this is a set
@@ -568,6 +569,7 @@ def confrozenset(
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ LIST TYPES ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 # This types superclass should be List[T], but cython chokes on that...
 class ConstrainedList(list):  # type: ignore
@@ -691,7 +693,11 @@ class ConstrainedDecimal(Decimal, metaclass=ConstrainedNumberMeta):
 
     @classmethod
     def validate(cls, value: Decimal) -> Decimal:
-        digit_tuple, exponent = value.as_tuple()[1:]
+        try:
+            normalized_value = value.normalize()
+        except InvalidOperation:
+            normalized_value = value
+        digit_tuple, exponent = normalized_value.as_tuple()[1:]
         if exponent in {'F', 'n', 'N'}:
             raise errors.DecimalIsNotFiniteError()
 
@@ -1090,7 +1096,6 @@ class ByteSize(int):
 
     @classmethod
     def validate(cls, v: StrIntFloat) -> 'ByteSize':
-
         try:
             return cls(int(v))
         except ValueError:
@@ -1112,7 +1117,6 @@ class ByteSize(int):
         return cls(int(float(scalar) * unit_mult))
 
     def human_readable(self, decimal: bool = False) -> str:
-
         if decimal:
             divisor = 1000
             units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']
@@ -1131,7 +1135,6 @@ class ByteSize(int):
         return f'{num:0.1f}{final_unit}'
 
     def to(self, unit: str) -> float:
-
         try:
             unit_div = BYTE_SIZES[unit.lower()]
         except KeyError:

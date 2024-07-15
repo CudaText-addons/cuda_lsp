@@ -1,4 +1,5 @@
 import sys
+import typing
 from collections.abc import Callable
 from os import PathLike
 from typing import (  # type: ignore
@@ -62,7 +63,9 @@ else:
     def evaluate_forwardref(type_: ForwardRef, globalns: Any, localns: Any) -> Any:
         # Even though it is the right signature for python 3.9, mypy complains with
         # `error: Too many arguments for "_evaluate" of "ForwardRef"` hence the cast...
-        return cast(Any, type_)._evaluate(globalns, localns, set())
+        # Python 3.13/3.12.4+ made `recursive_guard` a kwarg, so name it explicitly to avoid:
+        # TypeError: ForwardRef._evaluate() missing 1 required keyword-only argument: 'recursive_guard'
+        return cast(Any, type_)._evaluate(globalns, localns, recursive_guard=set())
 
 
 if sys.version_info < (3, 9):
@@ -89,6 +92,11 @@ AnyArgTCallable = TypingCallable[..., _T]
 # Annotated[...] is implemented by returning an instance of one of these classes, depending on
 # python/typing_extensions version.
 AnnotatedTypeNames = {'AnnotatedMeta', '_AnnotatedAlias'}
+
+
+LITERAL_TYPES: Set[Any] = {Literal}
+if hasattr(typing, 'Literal'):
+    LITERAL_TYPES.add(typing.Literal)
 
 
 if sys.version_info < (3, 8):
@@ -246,19 +254,11 @@ else:
     WithArgsTypes = (typing._GenericAlias, types.GenericAlias, types.UnionType)
 
 
-if sys.version_info < (3, 9):
-    StrPath = Union[str, PathLike]
-else:
-    StrPath = Union[str, PathLike]
-    # TODO: Once we switch to Cython 3 to handle generics properly
-    #  (https://github.com/cython/cython/issues/2753), use following lines instead
-    #  of the one above
-    # # os.PathLike only becomes subscriptable from Python 3.9 onwards
-    # StrPath = Union[str, PathLike[str]]
+StrPath = Union[str, PathLike]
 
 
 if TYPE_CHECKING:
-    from .fields import ModelField
+    from pydantic.fields import ModelField
 
     TupleGenerator = Generator[Tuple[str, Any], None, None]
     DictStrAny = Dict[str, Any]
@@ -354,10 +354,7 @@ elif sys.version_info[:2] == (3, 8):
 else:
 
     def is_none_type(type_: Any) -> bool:
-        for none_type in NONE_TYPES:
-            if type_ is none_type:
-                return True
-        return False
+        return type_ in NONE_TYPES
 
 
 def display_as_type(v: Type[Any]) -> str:
@@ -402,7 +399,10 @@ def resolve_annotations(raw_annotations: Dict[str, Type[Any]], module_name: Opti
             else:
                 value = ForwardRef(value, is_argument=False)
         try:
-            value = _eval_type(value, base_globals, None)
+            if sys.version_info >= (3, 13):
+                value = _eval_type(value, base_globals, None, type_params=())
+            else:
+                value = _eval_type(value, base_globals, None)
         except NameError:
             # this is ok, it can be fixed with update_forward_refs
             pass
@@ -415,7 +415,7 @@ def is_callable_type(type_: Type[Any]) -> bool:
 
 
 def is_literal_type(type_: Type[Any]) -> bool:
-    return Literal is not None and get_origin(type_) is Literal
+    return Literal is not None and get_origin(type_) in LITERAL_TYPES
 
 
 def literal_values(type_: Type[Any]) -> Tuple[Any, ...]:
@@ -440,7 +440,7 @@ def is_namedtuple(type_: Type[Any]) -> bool:
     Check if a given class is a named tuple.
     It can be either a `typing.NamedTuple` or `collections.namedtuple`
     """
-    from .utils import lenient_issubclass
+    from pydantic.utils import lenient_issubclass
 
     return lenient_issubclass(type_, tuple) and hasattr(type_, '_fields')
 
@@ -450,7 +450,7 @@ def is_typeddict(type_: Type[Any]) -> bool:
     Check if a given class is a typed dict (from `typing` or `typing_extensions`)
     In 3.10, there will be a public method (https://docs.python.org/3.10/library/typing.html#typing.is_typeddict)
     """
-    from .utils import lenient_issubclass
+    from pydantic.utils import lenient_issubclass
 
     return lenient_issubclass(type_, dict) and hasattr(type_, '__total__')
 
