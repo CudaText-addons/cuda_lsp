@@ -1,4 +1,7 @@
-2024.06.28
+2024.07.24 (by Alexey T.)
++ add: obey new app's option "autocomplete_replace_on_right":false
+
+2024.06.28 (by Alexey T.)
 * change: func-signature-tooltip is now themable (uses listbox colors)
 
 2024.06.07 (by Alexey T.)
