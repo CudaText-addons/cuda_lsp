@@ -39,6 +39,16 @@ def get_visible_eds():
         if ed:
             yield ed
 
+def replace_on_right():
+    lex = ct.ed.get_prop(ct.PROP_LEXER_FILE, '')
+    r = appx.get_opt(
+        'autocomplete_replace_on_right',
+        True,
+        appx.CONFIG_LEV_ALL,
+        ct.ed,
+        lex)
+    return r
+    
 def get_word(x, y):
     ed = ct.ed
     if not 0<=y<ed.get_line_count():
@@ -56,6 +66,9 @@ def get_word(x, y):
     while (x0<len(s)) and _isword(s[x0]):
         x0+=1
     text2 = s[x:x0]
+
+    if not replace_on_right():
+        text2 = ''
 
     return (text1, text2)
 

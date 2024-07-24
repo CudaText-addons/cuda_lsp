@@ -26,6 +26,7 @@ from .util import (
         get_visible_eds,
         get_word,
         get_nonwords_chars,
+        replace_on_right,
         split_text_by_length,
         uri_to_path,
         path_to_uri,
@@ -1779,8 +1780,12 @@ class CompletionMan:
         for i, char in enumerate(line_txt[edit.cached_x:]):
             if char in (non_word_chars+' '):      break
             else:                           pos += 1
-        x1 = min(edit.replace_range[0], edit.cached_x)
-        x2 = max(edit.replace_range[2], edit.cached_x+pos)
+
+        x1 = edit.replace_range[0]
+        x2 = edit.replace_range[2]
+        x1 = min(x1, edit.cached_x)
+        if replace_on_right():
+            x2 = max(x2, edit.cached_x+pos)
         
         has_brackets = all(b in text for b in '()')
         if is_bracket_follows and has_brackets: # remove "(params)" if bracket follows
