@@ -1788,6 +1788,10 @@ class CompletionMan:
         x1 = min(x1, edit.cached_x)
         x2 = max(x2, edit.cached_x)
 
+        # why startswith('.')?
+        # see CudaText issue #5634.
+        # if we type in JS at line start: "test.subs", then edit.replace_text may contain
+        # either "subs" or ".subs" (the latter if we have "autocomplete_autoshow_chars":1 and we type fast).
         if edit.replace_text.startswith('.') or replace_on_right():
             x2 = max(x2, edit.cached_x+pos)
 
