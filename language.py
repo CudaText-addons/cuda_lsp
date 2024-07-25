@@ -1786,8 +1786,12 @@ class CompletionMan:
         x1 = edit.replace_range[0]
         x2 = edit.replace_range[2]
         x1 = min(x1, edit.cached_x)
-        if replace_on_right():
+        x2 = max(x2, edit.cached_x)
+
+        if edit.replace_text.startswith('.') or replace_on_right():
             x2 = max(x2, edit.cached_x+pos)
+
+        #print('x1', x1, 'x2', x2, 'repl_text', repr(edit.replace_text))
         
         has_brackets = all(b in text for b in '()')
         if is_bracket_follows and has_brackets: # remove "(params)" if bracket follows
