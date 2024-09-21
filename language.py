@@ -1830,11 +1830,13 @@ class CompletionMan:
         else:
             new_caret = ed.replace(x1, edit.y, x2, edit.y, text)
             ed.set_caret(*new_caret)
-        
+
         # move caret inside "()" if snippet is very simple, e.g. "func()"
-        if re.match('^\w+\(\)$', text) and not is_destructor:
+        # to fix CudaText issue #5664, allow leading dot too
+        if re.match('^\.?\w+\(\)$', text) and not is_destructor:
             new_caret = ed.get_carets()[0]
             ed.set_caret(new_caret[0]-1, new_caret[1])
+
         
     def do_test(test: Test):
         """Test which prevents regressions of autocomplete feature
