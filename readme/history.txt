@@ -1,3 +1,6 @@
+2024.09.21
+- fix: CudaText issue #5664
+
 2024.07.24 (by Alexey T.)
 + add: obey new app's option "autocomplete_replace_on_right":false
 
