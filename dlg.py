@@ -955,9 +955,9 @@ class SignaturesDialog:
                 # replace comma with special char (excluding ones inside [{()}] brackets)
                 brackets = 0
                 signature = sig.label
-                signature = re.sub(".*?\(","", signature, count=1) # remove method name and first bracket '('
+                signature = re.sub(r".*?\(","", signature, count=1) # remove method name and first bracket '('
                 params_start = len(sig.label) - len(signature) # remember position where parameters start
-                signature = re.sub("\)[^,)]*$","", signature, count=1) # remove last bracket ')' and return value
+                signature = re.sub(r"\)[^,)]*$","", signature, count=1) # remove last bracket ')' and return value
                 char_list = list(signature)
                 for j,c in enumerate(char_list):
                     if 0:pass

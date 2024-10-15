@@ -1799,7 +1799,7 @@ class CompletionMan:
         
         has_brackets = all(b in text for b in '()')
         if is_bracket_follows and has_brackets: # remove "(params)" if bracket follows
-            text = re.sub('\([^)]*\)(;|\$\d)?$', '', text)
+            text = re.sub(r'\([^)]*\)(;|\$\d)?$', '', text)
             has_brackets = False
         if edit.is_snippet and text.endswith("($0)"):
             text = text[:-4]
@@ -1833,7 +1833,7 @@ class CompletionMan:
 
         # move caret inside "()" if snippet is very simple, e.g. "func()"
         # to fix CudaText issue #5664, allow leading dot too
-        if re.match('^\.?\w+\(\)$', text) and not is_destructor:
+        if re.match(r'^\.?\w+\(\)$', text) and not is_destructor:
             new_caret = ed.get_carets()[0]
             ed.set_caret(new_caret[0]-1, new_caret[1])
 

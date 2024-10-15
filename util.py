@@ -77,7 +77,7 @@ def get_nonwords_chars():
     lex = ed.get_prop(ct.PROP_LEXER_FILE, '')
     _nonwords = appx.get_opt(
         'nonword_chars',
-        '''-+*=/\()[]{}<>"'.,:;~?!@#$%^&|`…''',
+        r'''-+*=/\()[]{}<>"'.,:;~?!@#$%^&|`…''',
         appx.CONFIG_LEV_ALL,
         ed,
         lex)
