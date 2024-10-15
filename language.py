@@ -50,6 +50,10 @@ if (ver.major, ver.minor) < (3, 7):
     # instead of append use insert
     sys.path.insert(0, modules36_dir)
 
+if (ver.major, ver.minor) > (3, 12):
+    modules313_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lsp_modules313')
+    sys.path.insert(0, modules313_dir)
+
 
 from .sansio_lsp_client import client as lsp
 from .sansio_lsp_client import events
