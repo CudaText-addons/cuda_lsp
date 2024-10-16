@@ -1,8 +1,8 @@
-2024.10.15
+2024.10.15 (by Alexey T.)
 + add: compat with Python 3.13
 - fix: SyntaxWarnings on Py 3.13
 
-2024.09.21
+2024.09.21 (by Alexey T.)
 - fix: CudaText issue #5664
 
 2024.07.24 (by Alexey T.)
