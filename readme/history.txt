@@ -1,3 +1,7 @@
+2024.10.15
++ add: compat with Python 3.13
+- fix: SyntaxWarnings on Py 3.13
+
 2024.09.21
 - fix: CudaText issue #5664
 
