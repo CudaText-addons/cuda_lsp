@@ -768,7 +768,7 @@ class Language:
         if self._disabled_contexts_for_server is not None:
             return context in self._disabled_contexts_for_server
         else:
-            return context in Language.disabled_contexts
+            return (Language.disabled_contexts is not None) and (context in Language.disabled_contexts)
 
     def on_complete(self, eddoc):
         # if text selection present and ctrl+space is pressed: start debug tests
