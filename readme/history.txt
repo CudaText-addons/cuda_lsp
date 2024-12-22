@@ -1,3 +1,6 @@
+2024.12.22
+* change: reworked sidebar icon 'LSP' to match standard icons colors (by Markus F.)
+
 2024.10.15 (by Alexey T.)
 + add: compat with Python 3.13
 - fix: SyntaxWarnings on Py 3.13
