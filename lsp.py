@@ -445,6 +445,7 @@ class Command:
 
     def on_goto_def(self, ed_self):
         self.call_definition(ed_self)
+        return True # supress Cud's statusbar error "no goto-defition plugins"
 
     def on_app_activate(self, ed_self):
         dlg.app_active = True
