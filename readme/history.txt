@@ -1,3 +1,6 @@
+2025.10.01
++ add: support non-standard LSP extention of C# server (OmniSharp), which resolves "Go to defition" command there (by @badrelmers)
+
 2024.12.22
 * change: reworked sidebar icon 'LSP' to match standard icons colors (by Markus F.)
 
