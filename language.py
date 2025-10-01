@@ -1005,8 +1005,8 @@ class Language:
         target_line = max(0, targetrange.start.line - 3)
         target_caret = (targetrange.start.character, targetrange.start.line)
         ed.set_caret(*target_caret)
-        ed.set_prop(PROP_LINE_TOP, target_line)
         app_idle(True)  # Ensure scroll and focus
+        ed.set_prop(PROP_LINE_TOP, target_line)
         
     def do_goto(self, items, dlg_caption, skip_dlg=False, reqpos=None):
         """ items: Location or t.List[t.Union[Location, LocationLink]], None
