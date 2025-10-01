@@ -40,6 +40,7 @@ from .events import (
     WorkDoneProgressEnd,
     ConfigurationRequest,
     WorkspaceFolders,
+    Metadata,
 )
 from .structs import (
     Response,
@@ -382,6 +383,9 @@ class Client:
         # WORKSPACE
         elif request.method == "workspace/symbol":
             event = parse_obj_as(MWorkspaceSymbols, response)
+
+        elif request.method == "o#/metadata":
+            event = Metadata(message_id=response.id, result=response.result)
 
         else:
             raise NotImplementedError((response, request))
@@ -747,4 +751,7 @@ class Client:
             method="textDocument/rangeFormatting",
             params=params,
         )
+
+    def metadata(self, params):
+        return self._send_request(method="o#/metadata", params=params)
 
