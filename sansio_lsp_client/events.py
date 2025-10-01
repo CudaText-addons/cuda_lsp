@@ -1,6 +1,7 @@
 import typing as t
 
 from pydantic import BaseModel, PrivateAttr
+from typing import Optional, Dict, Any
 
 if t.TYPE_CHECKING:  # avoid import cycle at runtime
     from .client import Client
@@ -263,3 +264,7 @@ class ConfigurationRequest(ServerRequest):
     def reply(self, result=t.List[t.Any]) -> None:
         self._client._send_response(id=self._id,  result=result)
 
+class Metadata(Event):
+    message_id: int
+    result: Optional[Dict[str, Any]] = None
+    

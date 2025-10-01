@@ -43,6 +43,8 @@ from .dlg import PanelLog, SEVERITY_ERR, SEVERITY_LOG
 from .book import EditorDoc
 #from .tree import TreeMan  # imported on access
 
+import urllib.parse
+
 ver = sys.version_info
 if (ver.major, ver.minor) < (3, 7):
     modules36_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lsp_modules36')
@@ -197,6 +199,8 @@ class Language:
 
         self._dbg_msgs = []
         self._dbg_bmsgs = []
+        
+        self.metadata_goto_requests = {}
 
         if DBG:
             self.plog.set_lex(ed.get_prop(PROP_LEXER_FILE))
@@ -603,8 +607,14 @@ class Language:
 
         elif msgtype == events.ResponseError:
             _reqpos = self.request_positions.pop(msg.message_id, None)    # discard
-            errstr = f'ResponseError[{msg.code}]: {msg.message}'
-            self.plog.log_str(errstr, type_=_('Response Error'), severity=SEVERITY_ERR)
+            data = self.metadata_goto_requests.pop(msg.message_id, None)
+            if data:
+                # Log error for OmniSharp metadata
+                errstr = f'OmniSharp Metadata ResponseError[{msg.code}]: {msg.message}'
+                self.plog.log_str(errstr, type_=_('Response Error'), severity=SEVERITY_ERR)
+            else:
+                errstr = f'ResponseError[{msg.code}]: {msg.message}'
+                self.plog.log_str(errstr, type_=_('Response Error'), severity=SEVERITY_ERR)
 
         elif isinstance(msg, events.WorkDoneProgressCreate)  or  issubclass(msgtype, events.Progress):
             self._on_progress(msg)
@@ -616,6 +626,14 @@ class Language:
             self.shutdown_start_time = time.time()
             #self.exit()
 
+        elif msgtype == events.Metadata:
+            data = self.metadata_goto_requests.pop(msg.message_id, None)
+            if data:
+                reqpos, targetrange, dlg_caption = data
+                self._handle_metadata(msg.result, targetrange, reqpos, dlg_caption)
+            else:
+                print(f'{LOG_NAME}: {self.lang_str} - unknown Metadata id: {msg.message_id}')
+                
         else:
             print(f'{LOG_NAME}: {self.lang_str} - unknown Message type: {msgtype}')
 
@@ -965,6 +983,31 @@ class Language:
         if id is not None:
             self._save_req_pos(id=id, eddoc=eddoc, target_pos_caret=pos)
 
+    def _handle_metadata(self, result, targetrange, reqpos, dlg_caption):
+        """Callback to handle OmniSharp o#/metadata response and display source."""
+        if result is None:
+            msg_status(f'{LOG_NAME}: {self.lang_str}: {dlg_caption} - no result')
+            return
+
+        full_text = result.get('Source', '')
+        source_name = result.get('SourceName', 'Decompiled.cs')
+
+        if not full_text:
+            msg_status(f'{LOG_NAME}: {self.lang_str}: {dlg_caption} - no source code available')
+            return
+
+        # Open in new unsaved tab
+        file_open('')
+        ed.set_text_all(full_text)
+        ed.set_prop(PROP_TAB_TITLE, source_name)
+        ed.set_prop(PROP_LEXER_FILE, 'C#')
+
+        target_line = max(0, targetrange.start.line - 3)
+        target_caret = (targetrange.start.character, targetrange.start.line)
+        ed.set_caret(*target_caret)
+        ed.set_prop(PROP_LINE_TOP, target_line)
+        app_idle(True)  # Ensure scroll and focus
+        
     def do_goto(self, items, dlg_caption, skip_dlg=False, reqpos=None):
         """ items: Location or t.List[t.Union[Location, LocationLink]], None
         """
@@ -1011,6 +1054,44 @@ class Language:
         else: # items is single item
             uri,targetrange = link_to_target(items)
 
+        if uri.startswith('file:///%24metadata%24'):
+            # Handle OmniSharp metadata URI
+            path = urllib.parse.unquote(uri[8:])  # Get decoded path, e.g., '$metadata$\Project\mytool\Assembly\System\Runtime\Symbol\System\IO\File.cs'
+            parts = path.split('\\')
+
+            if parts[0] != '$metadata$':
+                msg_status(f'{LOG_NAME}: Invalid metadata URI')
+                return
+
+            try:
+                project_index = parts.index('Project') + 1
+                project_name = parts[project_index]
+
+                assembly_index = parts.index('Assembly') + 1
+                symbol_index = parts.index('Symbol')
+                assembly_parts = parts[assembly_index:symbol_index]
+                assembly_name = '.'.join(assembly_parts)
+
+                type_parts = parts[symbol_index + 1:]
+                type_name = '.'.join(type_parts).replace('.cs', '')
+            except ValueError:
+                msg_status(f'{LOG_NAME}: Failed to parse metadata URI')
+                return
+
+            params = {
+                "Timeout": 2000,
+                "ProjectName": project_name,
+                "AssemblyName": assembly_name,
+                "TypeName": type_name
+            }
+
+            # Send custom request using the new metadata method
+            id = self.client.metadata(params)
+            if id is not None:
+                self.metadata_goto_requests[id] = (reqpos, targetrange, dlg_caption)
+                self.process_queues()  # Flush send queue
+            return  # Async, so return here
+        
         targetpath = uri_to_path(uri)
         target_line = max(0, targetrange.start.line-3)
         target_caret = (targetrange.start.character, targetrange.start.line)
