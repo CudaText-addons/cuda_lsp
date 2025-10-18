@@ -351,12 +351,14 @@ SEVERITYS = [
     SEVERITY_WRN,
     SEVERITY_INFO,
     SEVERITY_LOG,
+    SEVERITY_NA,
 ]
 SEVERITY_MAP = {
     1: SEVERITY_ERR,
     2: SEVERITY_WRN,
     3: SEVERITY_INFO,
     4: SEVERITY_LOG,
+    5: SEVERITY_NA,
 }
 SEVERITY_IC_PATHS = {
     SEVERITY_ERR:  os.path.join(_icons_dir, 'error.png'),
@@ -375,6 +377,7 @@ PANEL_CAPTIONS = {
     SEVERITY_WRN:   _('Warning'),
     SEVERITY_INFO:  _('Info'),
     SEVERITY_LOG:   _('Log'),
+    SEVERITY_NA:   _('N/A'),
 }
 
 # PanelLog proxy
@@ -412,7 +415,6 @@ class PanelLog:
 
         self._memo_pos = (0,0)
         self._severity_ims = {} # severity str -> icon ind in imagelist
-        self._have_na_severity = False
         self._sb_cellind_map = {} # name -> cellind
         self._h_btn_sidebar = None
         self._h_ed_menu = None
@@ -651,10 +653,6 @@ class PanelLog:
         timer_proc(TIMER_START_ONE, self._update_counts, 500)
         self._update_sidebar()
 
-        # add na severity if needed
-        if severity == SEVERITY_NA  and  not self._have_na_severity:
-            SEVERITYS.append(SEVERITY_NA)
-            self._have_na_severity = True
         # new log type appeared
         if isinstance(type_, str)  and  type_ not in self._extra_types:
             self._extra_types.add(type_)
