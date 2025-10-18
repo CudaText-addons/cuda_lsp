@@ -1442,7 +1442,7 @@ class DiagnosticsMan:
                         filename_added = True
                         fn = ed.get_filename()
                         self.logger.log_str(f"File: {fn}",
-                            type_=TYPE_DIAG, severity=SEVERITY_MAP[d.severity],
+                            type_=TYPE_DIAG,
                             update_memo=False # _update_memo() will be called after the loop
                         )
                     self.logger.log_str(f"Line {d.range.start.line+1}: {text}",
