@@ -1975,12 +1975,13 @@ class CompletionMan:
         s2 = word
         pos_bracket = s1.find('(')
         s1 = s1 if pos_bracket == -1 else s1[:pos_bracket]
+        sort_s = item.get('sortText', s1)  # Falls back to label for alphabetical sort if sortText is absent
         return ( # "not": because False < True
                 not (s1 == s2),
                 not (s1.lower() == s2.lower()),
                 not s1.startswith(s2),
                 not s1.lower().startswith(s2.lower()),
-                s1, # alphabetic order
+                sort_s, # server sort order or alphabetic
                 )
     
     def prepare_complete(self, message_id, items, is_incomplete, is_cached=False):
