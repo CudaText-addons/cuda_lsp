@@ -1357,7 +1357,11 @@ class DiagnosticsMan:
     opt_diagnostics_in_a_corner = False
 
     def __init__(self, lintstr=None, underline_style=2, logger=None):
-        self.logger=logger
+        self.logger = logger
+        if self.logger is not None:
+            if not hasattr(self.logger, "diag_filename_info"):
+                self.logger.diag_filename_info = {}
+            self.logger.diag_filename_info.clear()
         self.uri_diags = {} # uri -> diag?
         self.dirtys = set() # uri
 
@@ -1445,6 +1449,7 @@ class DiagnosticsMan:
                             type_=TYPE_DIAG, severity=SEVERITY_MAP[d.severity],
                             update_memo=False # _update_memo() will be called after the loop
                         )
+                        self.logger.diag_filename_info[self.logger.name] = fn
                     self.logger.log_str(f"Line {d.range.start.line+1}: {text}",
                         type_=TYPE_DIAG, severity=SEVERITY_MAP[d.severity],
                         update_memo=False # _update_memo() will be called after the loop
