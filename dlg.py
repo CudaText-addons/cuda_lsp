@@ -442,20 +442,21 @@ class PanelLog:
         y = self._memo.get_carets()[0][1]
         lines = self._memo.get_text_all().splitlines()
 
+        # read the cached filename (and falls back to old scanning 'File: ' if cached filename is absent).
+        fn = self.diag_filename_info.get(self.name)
+        if not fn:
+            for i in reversed(range(y)):
+                line_txt = lines[i]
+                if line_txt.startswith('File: '):
+                    fn = line_txt[6:]
+                    break
+        if not fn: return
+        
         text = self._memo.get_text_line(y)
         if not text.startswith('Line '): return
         n = text.find(': ')
         if n<0: return
         line = int(text[5:n])-1
-        # read the cached filename (and falls back to old scanning 'File: ' if cached filename is absent).
-        fn = self.diag_filename_info.get(self.name)
-        if not fn:
-            for i in reversed(range(y)):
-                line = lines[i]
-                if line.startswith('File: '):
-                    fn = line[6:]
-                    break
-        if not fn: return
         file_open(fn)
         ed.set_caret(0, line)
         ed.focus()
