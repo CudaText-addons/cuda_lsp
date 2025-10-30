@@ -406,6 +406,7 @@ class PanelLog:
 
         self._msgs = [] # ShowMessage, LogMessage, tuple(type_, str)
         self._extra_types = set() # server stderr, etc
+        self.diag_filename_info = {}
         # filter panel: disabled "categories"
         self._disabled_items = set(state.get('log_panel_filter'))  if isinstance(state, dict) else  set()
         self._is_wrap = state.get('is_wrap')  if isinstance(state, dict) else  True
@@ -441,19 +442,20 @@ class PanelLog:
         y = self._memo.get_carets()[0][1]
         lines = self._memo.get_text_all().splitlines()
 
-        fn = ''
-        for i in reversed(range(y)):
-            line = lines[i]
-            if line.startswith('File: '):
-                fn = line[6:]
-                break
-        if not fn: return
-
         text = self._memo.get_text_line(y)
         if not text.startswith('Line '): return
         n = text.find(': ')
         if n<0: return
         line = int(text[5:n])-1
+        # read the cached filename (and falls back to old scanning 'File: ' if cached filename is absent).
+        fn = self.diag_filename_info.get(self.name)
+        if not fn:
+            for i in reversed(range(y)):
+                line = lines[i]
+                if line.startswith('File: '):
+                    fn = line[6:]
+                    break
+        if not fn: return
         file_open(fn)
         ed.set_caret(0, line)
         ed.focus()
@@ -665,12 +667,14 @@ class PanelLog:
         self._update_memo()
         self._update_counts()
         self._update_sidebar()
+        self.diag_filename_info.pop(self.name, None)
         
     def clear(self):
         self._msgs.clear()
         self._update_memo()
         self._update_counts()
         self._update_sidebar()
+        self.diag_filename_info.clear()
 
     def toggle_wrap(self):
         self._is_wrap = not self._is_wrap
@@ -769,6 +773,8 @@ class PanelLog:
 
         app_proc(PROC_BOTTOMPANEL_REMOVE, self.sidepanel_name)
         dlg_proc(self.h_dlg, DLG_FREE)
+
+        self.diag_filename_info.clear()
 
         del PanelLog.panels[self.name]
 
