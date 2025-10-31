@@ -197,4 +197,4 @@
 + add: better work of action "Show function signature"
 
 2021.04.10
-initial
+initial version
