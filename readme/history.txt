@@ -1,3 +1,6 @@
+2025.10.31
+- fix: if LSP plugin's log-panel had only warning lines without note lines (or only note lines without warning lines?), dbl-click on log line could not open the filename in editor (by @badrelmers)
+
 2025.10.01
 + add: support non-standard LSP extention of C# server (OmniSharp), which resolves "Go to defition" command there (by @badrelmers)
 
