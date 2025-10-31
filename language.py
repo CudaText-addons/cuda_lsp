@@ -1359,9 +1359,7 @@ class DiagnosticsMan:
     def __init__(self, lintstr=None, underline_style=2, logger=None):
         self.logger = logger
         if self.logger is not None:
-            if not hasattr(self.logger, "diag_filename_info"):
-                self.logger.diag_filename_info = {}
-            self.logger.diag_filename_info.clear()
+            self.logger.diag_filename_info = {}
         self.uri_diags = {} # uri -> diag?
         self.dirtys = set() # uri
 
