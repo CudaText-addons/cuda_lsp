@@ -41,7 +41,22 @@ class DocBook:
         assert not args, 'only call _get_doc() w/ named arguments'
 
         if ed is not None:
-            return get_first(doc for doc in self.docs.values()  if doc.ed == ed)
+            # 1. Fast Path: Check if the document is already associated with this specific editor instance (ed).
+            # This is the most efficient path for continuous editing in a single view.
+            doc = get_first(doc for doc in self.docs.values() if doc.ed == ed)
+            if doc:
+                return doc
+
+            # 2. Fallback: If not found by 'ed', try to find the document by its canonical URI.
+            # with the above code (1. Fast Path) if we have ed1 (original tab) and ed2 (split tab) for the same file, calling _get_doc(ed=ed2) would return None, because the DocBook only knew about ed1. here we handle split views (ed2).
+            doc_uri = ed_uri(ed)
+            doc = self.docs.get(doc_uri)
+            
+            if doc:
+                if doc._ed != ed:  # Only update if the editor instance is different (when the user switches to a different editor view (ed) of the same file.)
+                    doc._ed = ed # This updates the EditorDoc to point to the currently active editor instance
+            return doc
+        
         elif uri is not None:
             return self.docs[uri]
 
