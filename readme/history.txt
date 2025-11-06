@@ -1,3 +1,9 @@
+2025.11.04
+- fix: auto-completion did not work in 'splitted' editor ie shown by "Split / Split tab horizontally" menu item (by @badrelmers)
+
+2025.10.31
+- fix: if LSP plugin's log-panel had only warning lines without note lines (or only note lines without warning lines?), dbl-click on log line could not open the filename in editor (by @badrelmers)
+
 2025.10.01
 + add: support non-standard LSP extention of C# server (OmniSharp), which resolves "Go to defition" command there (by @badrelmers)
 
@@ -194,4 +200,4 @@
 + add: better work of action "Show function signature"
 
 2021.04.10
-initial
+initial version

@@ -151,6 +151,6 @@ About
 Authors:
 - Shovel, https://github.com/halfbrained/
 - Yuriy Balyuk, https://github.com/veksha/
-- snippet.py by Alexey Torgashin (CudaText) & helpers
+- snippet-engine (in snip/snippet.py) by Alexey Torgashin (CudaText) & helpers
 
 License: MIT
