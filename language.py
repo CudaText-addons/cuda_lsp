@@ -1978,7 +1978,7 @@ class CompletionMan:
         s2 = word
         pos_bracket = s1.find('(')
         s1 = s1 if pos_bracket == -1 else s1[:pos_bracket]
-        sort_s = item.get('sortText', s1)  # Falls back to label for alphabetical sort if sortText is absent
+        sort_s = item.get('sortText', s1) # Falls back to label for alphabetical sort if sortText is absent
         return ( # "not": because False < True
                 not (s1 == s2),
                 not (s1.lower() == s2.lower()),
@@ -2056,9 +2056,30 @@ class CompletionMan:
         _colors = app_proc(PROC_THEME_UI_DICT_GET, '')
         c1 = appx.int_to_html_color(_colors['ListFontHilite']['color'])
         c2 = appx.int_to_html_color(_colors['ListCompleteParams']['color'])
-        
-        def add_html_tags(text, item_kind, filter_text):
+        c3 = '#808080' # color for deprecated items
+
+        def is_deprecated(item):
+            # LSP 'deprecated' boolean: item['deprecated'] == True
+            if item.get('deprecated'):
+                return True
+            # LSP 'tags': Tag.Deprecated is 1 per LSP spec
+            tags = item.get('tags')
+            if isinstance(tags, (list, tuple)) and 1 in tags:
+                return True
+            # Some servers (TypeScript) use sortText starting with 'z' to mark deprecated items.
+            sort_text = item.get('sortText')
+            if isinstance(sort_text, str) and sort_text.startswith('z'):
+                return True
+            return False
+
+        def add_html_tags(text, item_kind, filter_text, deprecated=False):
             if api_ver < '1.0.433':    return text
+            
+            if deprecated:
+                # Apply strikethrough and grey color for deprecated items
+                text = '<font color="{}"><s>{}</s></font>'.format(c3, text)
+                return '<html>'+text
+
             #if item_kind in CALLABLE_COMPLETIONS:   text = '<u>'+text+'</u>'
             pos_bracket = text.find('(')
             s = text if pos_bracket == -1 else text[:pos_bracket] 
@@ -2090,7 +2111,7 @@ class CompletionMan:
             return s
         
         words = ['{}\t{}\t{}|{}'.format(
-                    add_html_tags(item['label'], item['kind'], word1),
+                    add_html_tags(item['label'], item['kind'], word1, is_deprecated(item)),
                     short_version(item['kind'] and CompletionItemKind(item['kind']).name.lower() or ''),
                     message_id, i)
                     for i,item in enumerate(items)
