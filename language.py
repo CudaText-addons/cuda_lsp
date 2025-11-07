@@ -2056,7 +2056,7 @@ class CompletionMan:
         _colors = app_proc(PROC_THEME_UI_DICT_GET, '')
         c1 = appx.int_to_html_color(_colors['ListFontHilite']['color'])
         c2 = appx.int_to_html_color(_colors['ListCompleteParams']['color'])
-        c3 = '#808080' # color for deprecated items
+        c3 = appx.int_to_html_color(_colors['ButtonFontDisabled']['color']) # color for deprecated items
 
         def is_deprecated(item):
             # LSP 'deprecated' boolean: item['deprecated'] == True
