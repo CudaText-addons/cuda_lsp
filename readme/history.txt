@@ -1,4 +1,5 @@
-2025.11.04
+2025.11.07
++ add: auto-completion listbox now shows 'deprecated' autocompletion items (e.g. with TypeScript server) with grayed+crossed font (by @badrelmers)
 - fix: auto-completion did not work in 'splitted' editor ie shown by "Split / Split tab horizontally" menu item (by @badrelmers)
 
 2025.10.31
