@@ -2224,6 +2224,7 @@ class CompletionMan:
             s = s.replace('reference', 'ref')
             s = s.replace('keyword', 'keyw')
             s = s.replace('interface', 'intf')
+            s = s.replace('property', 'prop')
             return s
         
         words = ['{}\t{}\t{}|{}'.format(
