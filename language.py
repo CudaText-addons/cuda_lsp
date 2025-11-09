@@ -77,7 +77,7 @@ from .sansio_lsp_client.structs import (
         CompletionTriggerKind,
     )
     
-from .snip.snippet import Snippet, VS_SNIPPET
+from .snippet_engine import Snippet, VS_SNIPPET
 
 import traceback
 import datetime
