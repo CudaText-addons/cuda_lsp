@@ -1963,6 +1963,7 @@ class CompletionMan:
             print(f"ERROR: failed {type_str} {test.lexer}: {test.initial_text} ===> {line} (must be {test.result_text})")
             return False
 
+    @staticmethod
     def _completion_fuzzy_match(stext, sfind):
         """
         Performs a fuzzy match check. ported from cuda_complete_from_text to have the same user experience inside CudaText
@@ -2012,7 +2013,7 @@ class CompletionMan:
                 return True
                 
             # If substring fails, try fuzzy matching
-            positions = _completion_fuzzy_match(s1, s2)
+            positions = CompletionMan._completion_fuzzy_match(s1, s2)
             if positions is not None:
                 # Store the match positions on the item for the highlighter
                 item['_cudalsp_fuzzy'] = positions 
