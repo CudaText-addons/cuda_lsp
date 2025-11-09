@@ -2058,6 +2058,9 @@ class CompletionMan:
         c2 = appx.int_to_html_color(_colors['ListCompleteParams']['color'])
         c3 = appx.int_to_html_color(_colors['ButtonFontDisabled']['color']) # color for deprecated items
 
+        langids_lower = {lid.lower() for lid in getattr(self.lang, 'langids', ())}
+        is_typescript_server = bool(langids_lower & {'javascript', 'javascriptreact', 'typescript'})
+
         def is_deprecated(item):
             # LSP 'deprecated' boolean: item['deprecated'] == True
             if item.get('deprecated'):
@@ -2066,9 +2069,9 @@ class CompletionMan:
             tags = item.get('tags')
             if isinstance(tags, (list, tuple)) and 1 in tags:
                 return True
-            # Some servers (TypeScript) use sortText starting with 'z' to mark deprecated items.
+            # Some servers (TypeScript) use sortText starting with 'z' to mark deprecated items. But python-lsp/python-lsp-server server use 'z' to mark Python builtins, so here we treat sortText values starting with 'z' as deprecated only for JS/TS servers.
             sort_text = item.get('sortText')
-            if isinstance(sort_text, str) and sort_text.startswith('z'):
+            if is_typescript_server and isinstance(sort_text, str) and sort_text.startswith('z'):
                 return True
             return False
 
