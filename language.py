@@ -1962,31 +1962,97 @@ class CompletionMan:
         else:
             print(f"ERROR: failed {type_str} {test.lexer}: {test.initial_text} ===> {line} (must be {test.result_text})")
             return False
+
+    def _completion_fuzzy_match(stext, sfind):
+        """
+        Performs a fuzzy match check. ported from cuda_complete_from_text to have the same user experience inside CudaText
+        
+        Returns:
+            list: A list of character indices in `stext` that match `sfind` in order.
+            None: If a match is not found.
+        """
+        if not sfind:
+            return []
+        stext = stext.upper()
+        sfind = sfind.upper()
+        n = -1
+        positions = []
+        for ch in sfind:
+            n = stext.find(ch, n+1)
+            if n < 0:
+                return None
+            positions.append(n)
+        return positions
         
     def filter(self, item, word):
+        """filter method with fuzzy search support"""
+        # Get the text to match against
         s1 = item['label'] if item.get('filterText') is None else item.get('filterText')
         s2 = word
+        
+        # Remove function brackets from the label for matching
         pos_bracket = s1.find('(')
         s1 = s1 if pos_bracket == -1 else s1[:pos_bracket]
+        
+        # If hard filter is enabled, use strict matching
         if CompletionMan.hard_filter:
+            item.pop('_cudalsp_fuzzy', None)
             return s1.startswith(s2)
         else:
-            return s2.lower() in s1.lower()
+            # Always match if no filter word
+            if not s2:
+                item.pop('_cudalsp_fuzzy', None)
+                return True
+            
+            # First, check for a simple (and fast) case-insensitive substring match
+            s1_lower = s1.lower()
+            s2_lower = s2.lower()
+            if s2_lower in s1_lower:
+                item.pop('_cudalsp_fuzzy', None) # Ensure no fuzzy data is stored
+                return True
+                
+            # If substring fails, try fuzzy matching
+            positions = _completion_fuzzy_match(s1, s2)
+            if positions is not None:
+                # Store the match positions on the item for the highlighter
+                item['_cudalsp_fuzzy'] = positions 
+                return True
+                
+            # No match found, remove any old fuzzy data
+            item.pop('_cudalsp_fuzzy', None)
+            return False
     
     def sort(self, item, word):
+        """sort method that prioritizes exact and prefix matches over fuzzy matches"""
         s1 = item['label'].strip(' •')
-        s2 = word
+        s2 = word # s2 represents the word the user has typed so far (the filter text)
+        
+        # Remove function brackets
         pos_bracket = s1.find('(')
         s1 = s1 if pos_bracket == -1 else s1[:pos_bracket]
+        
         sort_s = item.get('sortText', s1) # Falls back to label for alphabetical sort if sortText is absent
+        
+        # Calculate match quality scores
+        s1_lower = s1.lower()
+        s2_lower = s2.lower()
+        substring_match = s2_lower in s1_lower if s2 else True
+        # Check if fuzzy match positions were stored during filtering
+        fuzzy_positions = item.get('_cudalsp_fuzzy') if s2 else None
+        fuzzy_match = bool(fuzzy_positions) if s2 else True
+
+        # Return tuple for sorting (False comes before True)
+        # Priority: exact > exact ci > prefix > prefix ci > substring > fuzzy > server/alphabetical
         return ( # "not": because False < True
-                not (s1 == s2),
-                not (s1.lower() == s2.lower()),
-                not s1.startswith(s2),
-                not s1.lower().startswith(s2.lower()),
-                sort_s, # server sort order or alphabetic
+                not (s1 == s2),                      # Exact matches first
+                not (s1_lower == s2_lower),          # Exact matches (Case-insensitive)
+                not s1.startswith(s2),               # Prefix matches
+                not s1_lower.startswith(s2_lower),   # Prefix matches (Case-insensitive)
+                not substring_match,                 # Substring matches
+                not fuzzy_match,                     # Fuzzy matches
+                sort_s,                              # server sort order or alphabetic
                 )
-    
+  
     def prepare_complete(self, message_id, items, is_incomplete, is_cached=False):
         if self.h_ed != ed.get_prop(PROP_HANDLE_SELF):
             return # wrong editor
@@ -2075,7 +2141,10 @@ class CompletionMan:
                 return True
             return False
 
-        def add_html_tags(text, item_kind, filter_text, deprecated=False):
+        def add_html_tags(item, filter_text):
+            text = item['label']
+            item_kind = item['kind']
+            deprecated = is_deprecated(item)
             if api_ver < '1.0.433':    return text
             
             if deprecated:
@@ -2085,23 +2154,66 @@ class CompletionMan:
 
             #if item_kind in CALLABLE_COMPLETIONS:   text = '<u>'+text+'</u>'
             pos_bracket = text.find('(')
-            s = text if pos_bracket == -1 else text[:pos_bracket] 
-            pos = s.find(filter_text) # case-sensitive
-            if pos == -1: # if not found try case-insensitive
-                pos = s.lower().find(filter_text.lower())
-            hilite_end = pos + len(filter_text)
-            if pos_bracket >= hilite_end:
-                parts = [ (text[:pos],''), (text[pos:hilite_end],c1),
-                          (text[hilite_end:pos_bracket],''), (text[pos_bracket:], c2) ]
-            elif pos_bracket > 0:
-                parts = [ (text[:pos_bracket],''), (text[pos_bracket:pos],c2),
-                          (text[pos:hilite_end],c1), (text[hilite_end:],c2) ]
-            else: parts = [ (text[:pos],''), (text[pos:hilite_end],c1), (text[hilite_end:],'') ]
-            text = ''
-            for p in parts:
-                if p[1]:    text += '<font color="{}">{}</font>'.format(p[1], p[0])
-                else:       text += p[0]
-            return '<html>'+text
+            prefix_len = pos_bracket if pos_bracket >= 0 else len(text)
+            
+            highlight_ranges = []
+            if filter_text:
+                prefix = text[:prefix_len]
+                # Check for plain substring match first
+                pos = prefix.find(filter_text)
+                if pos == -1:
+                    pos = prefix.lower().find(filter_text.lower())
+                
+                if pos != -1:
+                    # If plain match, highlight the whole block
+                    highlight_ranges.append((pos, pos + len(filter_text)))
+                else:
+                    # If no plain match, check for stored fuzzy match positions
+                    fuzzy_positions = item.get('_cudalsp_fuzzy')
+                    if fuzzy_positions:
+                        # Highlight individual fuzzy characters
+                        highlight_ranges.extend((p, p+1) for p in fuzzy_positions)
+            
+            # Use a set for efficient O(1) lookups in the loop
+            highlight_positions = set()
+            for start, end in highlight_ranges:
+                for idx in range(start, min(end, len(text))):
+                    highlight_positions.add(idx)
+
+            # Build the HTML string in a single pass
+            html_parts = []
+            current_color = None
+
+            def set_color(color):
+                """Optimized helper to avoid redundant <font> tags."""
+                nonlocal current_color
+                if current_color == color:
+                    return
+                if current_color is not None:
+                    html_parts.append('</font>')
+                if color is not None:
+                    html_parts.append('<font color="{}">'.format(color))
+                current_color = color
+
+            for idx, ch in enumerate(text):
+                if pos_bracket != -1 and idx >= pos_bracket:
+                    # Parameter color (c2)
+                    color = c2
+                elif idx in highlight_positions:
+                    # Match color (c1)
+                    color = c1
+                else:
+                    # Default color
+                    color = None
+                
+                set_color(color)
+                html_parts.append(ch)
+
+            set_color(None) # Close any remaining font tag
+            
+            # Clean up the stored fuzzy data
+            item.pop('_cudalsp_fuzzy', None)
+            return '<html>'+''.join(html_parts)
         
         def short_version(s):
             s = s.replace('function', 'func')
@@ -2114,7 +2226,7 @@ class CompletionMan:
             return s
         
         words = ['{}\t{}\t{}|{}'.format(
-                    add_html_tags(item['label'], item['kind'], word1, is_deprecated(item)),
+                    add_html_tags(item, word1),
                     short_version(item['kind'] and CompletionItemKind(item['kind']).name.lower() or ''),
                     message_id, i)
                     for i,item in enumerate(items)
