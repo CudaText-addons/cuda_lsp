@@ -886,13 +886,13 @@ class SignaturesDialog:
             # offset x position in hope that parameter in tooltip will be close to caret pos
             #if cls.param_pos:
                 #x = x - cls.param_pos*cell_x
-            markers = cls.memo.attr(MARKERS_GET)
+            markers = cls.memo.attr(MARKERS_GET_DICT)
             for marker in markers:
-                if marker[0] == 1:
-                    xy = cls.memo.convert(CONVERT_CARET_TO_PIXELS, marker[1]+1, marker[2])
+                if marker['tag'] == 1:
+                    xy = cls.memo.convert(CONVERT_CARET_TO_PIXELS, marker['x']+1, marker['y'])
                     if xy:
                         param_pos, _ = xy
-                        param_len = marker[3]
+                        param_len = marker['len']
                         x = x - (param_pos+(param_len*cell_x//2)) + cell_x
                         break
             
