@@ -1,3 +1,6 @@
+2025.11.19
+- fix: avoid deprecated API: MARKERS_GET (by Alexey)
+
 2025.11.09 (by @badrelmers)
 + add: support 'fuzzy matching' in LSP auto-completion list
 - fix: don't treat Python-LSP server items as 'deprecated' wrongly
