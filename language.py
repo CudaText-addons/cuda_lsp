@@ -89,6 +89,8 @@ DEBUG_MESSAGES = False
 DBG = LOG
 LOG_NAME = 'LSP'
 
+DEBUG_DEV = True
+
 api_ver = app_api_version()
 
 IS_WIN = os.name=='nt'
@@ -139,6 +141,7 @@ class Language:
     def __init__(self, cfg, cmds=None, lintstr='', underline_style=None, state=None):
         self._shutting_down = None  # scheduled shutdown when not yet initialized
         self.shutdown_start_time = None
+        if DEBUG_DEV: print(">>> DEBUG_DEV cfg:",cfg)
 
         self._last_complete = None
         self._cfg = cfg
@@ -152,6 +155,7 @@ class Language:
         self._server_cmd = cfg.get(CMD_OS_KEY)
         self._tcp_port = cfg.get('tcp_port') # None => use Popen
         self._work_dir = cfg.get('work_dir')
+        if DEBUG_DEV: print(">>> DEBUG_DEV _work_dir",self._work_dir)
         # paths to add to env  -- {var_name: list[paths]}
         self._env_paths = cfg.get('env_paths')
         self._log_stderr = bool(cfg.get('log_stderr'))
@@ -1792,6 +1796,10 @@ class ServerConfig:
         # 'textDocument/didOpen' => 'didopen'
         supported_names = {reg.method.split('/')[-1].lower() for reg in self.capabs}
         res = {**cmds}
+        if DEBUG_DEV:
+            print(">>> DEBUG_DEV capabs",self.capabs)
+            print(">>> DEBUG_DEV supported_names",supported_names)
+            print(">>> DEBUG_DEV res",res)
         for name in cmds:
             # 'Type definition' => 'typedefinition'
             name_tmp = name.lower().replace(' ', '')
