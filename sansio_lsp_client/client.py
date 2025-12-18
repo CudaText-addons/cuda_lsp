@@ -514,26 +514,16 @@ class Client:
         else:
             raise NotImplementedError(request)
 
-    def recv(self, data: bytes, errors: t.Optional[t.List[Exception]] = None) -> t.List[Event]:
+    def recv(self, data: bytes) -> t.Iterator[Event]:
         self._recv_buf += data
-
-        # _parse_messages deletes consumed data from self._recv_buf
-        messages = list(_parse_messages(self._recv_buf))
-
-        events: t.List[Event] = []
-        for message in messages:
-            try:
-                if isinstance(message, Response):
-                    events.append(self._handle_response(message))
-                elif isinstance(message, Request):
-                    events.append(self._handle_request(message))
-                else:
-                    raise RuntimeError("Unexpected message type")
-            except Exception as exc:
-                if errors is not None:
-                    errors.append(exc)
-
-        return events
+        # Make sure to use lots of iterators, so that if one message fails to
+        # parse, the messages before it are yielded successfully before the
+        # error, and the messages after it are left in _recv_buf.
+        for message in _parse_messages(self._recv_buf):
+            if isinstance(message, Response):
+                yield self._handle_response(message)
+            else:
+                yield self._handle_request(message)
 
     def send(self) -> bytes:
         send_buf = self._send_buf[:]
