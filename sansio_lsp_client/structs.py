@@ -346,7 +346,7 @@ class SymbolTag(enum.IntEnum):
 
 class CallHierarchyItem(BaseModel):
     name: str
-    king: SymbolKind
+    kind: SymbolKind
     tags: t.Optional[SymbolTag]
     detail: t.Optional[str]
     uri: str

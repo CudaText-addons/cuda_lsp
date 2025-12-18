@@ -6,66 +6,63 @@ import typing as t
 from pydantic import parse_obj_as, ValidationError
 
 from .events import (
-    ResponseError,
-    Initialized,
     Completion,
-    SemanticTokens,
-    ServerRequest,
-    Shutdown,
-    PublishDiagnostics,
-    Event,
-    ShowMessage,
-    ServerNotification,
-    WillSaveWaitUntilEdits,
-    ShowMessageRequest,
-    LogMessage,
-    # NEW ###
-    Hover,
-    SignatureHelp,
-    Definition,
-    References,
-    MCallHierarchItems,
-    Implementation,
-    MWorkspaceSymbols,
-    Declaration,
-    TypeDefinition,
-    RegisterCapabilityRequest,
-    MDocumentSymbols,
-    DocumentFormatting,
-    Progress,
-    WorkDoneProgress,
-    WorkDoneProgressCreate,
-    WorkDoneProgressBegin,
-    WorkDoneProgressReport,
-    WorkDoneProgressEnd,
     ConfigurationRequest,
-    WorkspaceFolders,
+    Declaration,
+    Definition,
+    DocumentFormatting,
+    Event,
+    Hover,
+    Implementation,
+    Initialized,
+    LogMessage,
+    MCallHierarchItems,
+    MDocumentSymbols,
     Metadata,
+    MWorkspaceSymbols,
+    Progress,
+    PublishDiagnostics,
+    References,
+    RegisterCapabilityRequest,
+    ResponseError,
+    SemanticTokens,
+    ServerNotification,
+    ServerRequest,
+    ShowMessage,
+    ShowMessageRequest,
+    Shutdown,
+    SignatureHelp,
+    TypeDefinition,
+    WillSaveWaitUntilEdits,
+    WorkDoneProgress,
+    WorkDoneProgressBegin,
+    WorkDoneProgressCreate,
+    WorkDoneProgressEnd,
+    WorkDoneProgressReport,
+    WorkspaceFolders,
 )
 from .structs import (
-    Response,
-    TextDocumentPosition,
     CompletionContext,
-    CompletionList,
     CompletionItem,
-    Request,
-    JSONDict,
-    TextDocumentItem,
-    TextDocumentIdentifier,
-    VersionedTextDocumentIdentifier,
-    TextDocumentContentChangeEvent,
-    TextDocumentSaveReason,
-    TextEdit,
+    CompletionList,
+    FormattingOptions,
     Id,
-
+    JSONDict,
     Location,
     LocationLink,
-    # NEW
-    SymbolInformation,
-    FormattingOptions,
-    Range,
-    WorkspaceFolder,
     MWorkDoneProgressKind,
+    Range,
+    Request,
+    Response,
+    SymbolInformation,
+    TextDocumentContentChangeEvent,
+    TextDocumentIdentifier,
+    TextDocumentItem,
+    TextDocumentPosition,
+    TextDocumentSaveReason,
+    TextEdit,
+    VersionedTextDocumentIdentifier,
+    WorkspaceFolder,
 )
 from .io_handler import _make_request, _parse_messages, _make_response
 
@@ -80,111 +77,111 @@ class ClientState(enum.Enum):
 
 #NOTE: Server capabilitie: resolveProvider - info about completion item -- can't use?
 CAPABILITIES = {
-    'textDocument': {
-        'synchronization': {
-            'didSave': True,
-            #'willSaveWaitUntil': True,
-            'dynamicRegistration': True,
-            #'willSave': True
+    "textDocument": {
+        "synchronization": {
+            "didSave": True,
+            #"willSaveWaitUntil": True,
+            "dynamicRegistration": True,
+            #"willSave": True
         },
 
-        'publishDiagnostics': {
-            'relatedInformation': True,
-            'tagSupport': {
-                'valueSet': [1,2]
+        "publishDiagnostics": {
+            "relatedInformation": True,
+            "tagSupport": {
+                "valueSet": [1,2]
             }
         },
 
-        'completion': {
-            'dynamicRegistration': True,
-            'completionItem': {
-                'snippetSupport': True
+        "completion": {
+            "dynamicRegistration": True,
+            "completionItem": {
+                "snippetSupport": True
             },
-            'completionItemKind': {
-                'valueSet': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25]
+            "completionItemKind": {
+                "valueSet": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25]
             },
-            'contextSupport': True,
+            "contextSupport": True,
         },
-        'hover': {
-            'dynamicRegistration': True,
-            'contentFormat': ['markdown', 'plaintext'],
+        "hover": {
+            "dynamicRegistration": True,
+            "contentFormat": ["markdown", "plaintext"],
         },
-        'definition': {
-            'dynamicRegistration': True,
-            'linkSupport': True,
+        "definition": {
+            "dynamicRegistration": True,
+            "linkSupport": True,
         },
-        'signatureHelp': {
-            'dynamicRegistration': True,
-            'signatureInformation': {
-                'documentationFormat': ['markdown', 'plaintext'],
-                'parameterInformation': {
-                    'labelOffsetSupport': True
+        "signatureHelp": {
+            "dynamicRegistration": True,
+            "signatureInformation": {
+                "documentationFormat": ["markdown", "plaintext"],
+                "parameterInformation": {
+                    "labelOffsetSupport": True
                 },
-                'activeParameterSupport': True
+                "activeParameterSupport": True
             }
         },
-        'implementation': {
-            'linkSupport': True,
-            'dynamicRegistration': True,
+        "implementation": {
+            "linkSupport": True,
+            "dynamicRegistration": True,
         },
-        'references': {
-            'dynamicRegistration': True
+        "references": {
+            "dynamicRegistration": True
         },
-        'callHierarchy':{
-            'dynamicRegistration': True
+        "callHierarchy":{
+            "dynamicRegistration": True
         },
-        'declaration': {
-            'linkSupport': True,
-            'dynamicRegistration': True
+        "declaration": {
+            "linkSupport": True,
+            "dynamicRegistration": True
         },
-        'typeDefinition': {
-            'linkSupport': True,
-            'dynamicRegistration': True
-        },
-
-        'formatting': {
-            'dynamicRegistration': True
-        },
-        'rangeFormatting': {
-            'dynamicRegistration': True
+        "typeDefinition": {
+            "linkSupport": True,
+            "dynamicRegistration": True
         },
 
-        'documentSymbol': {  # Document Symbols Request
-            'hierarchicalDocumentSymbolSupport': True,
-            'dynamicRegistration': True,
-            'symbolKind': {
-                'valueSet': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26]
+        "formatting": {
+            "dynamicRegistration": True
+        },
+        "rangeFormatting": {
+            "dynamicRegistration": True
+        },
+
+        "documentSymbol": {  # Document Symbols Request
+            "hierarchicalDocumentSymbolSupport": True,
+            "dynamicRegistration": True,
+            "symbolKind": {
+                "valueSet": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26]
             }
         },
     },
 
-    'window': {
-        'showMessage': {
-            #'messageActionItem': {
-                #'additionalPropertiesSupport': True
+    "window": {
+        "showMessage": {
+            #"messageActionItem": {
+                #"additionalPropertiesSupport": True
             #}
         },
-        'workDoneProgress': True
+        "workDoneProgress": True
     },
 
-    'workspace': {
-        'symbol': {
-            'dynamicRegistration': True,
-            'symbolKind': {
-                'valueSet': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26]
+    "workspace": {
+        "symbol": {
+            "dynamicRegistration": True,
+            "symbolKind": {
+                "valueSet": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26]
             }
         },
-        'workspaceFolders': True,
+        "workspaceFolders": True,
 
-        #'workspaceEdit': {
-            #'failureHandling': 'abort',
-            #'documentChanges': True
+        #"workspaceEdit": {
+            #"failureHandling": "abort",
+            #"documentChanges": True
         #},
-        #'applyEdit': True,
-        #'executeCommand': {},
-        'configuration': True,
-        'didChangeConfiguration': {
-            'dynamicRegistration': True
+        #"applyEdit": True,
+        #"executeCommand": {},
+        "configuration": True,
+        "didChangeConfiguration": {
+            "dynamicRegistration": True
         }
     },
 }
