@@ -414,32 +414,37 @@ class Language:
                     self.exit(process_queues=False)
 
             # read Queue
-            errors = []
             while not self._read_q.empty():
                 data = self._read_q.get()
 
-                events = self.client.recv(data, errors=errors)
-
-                limit = 100 # limit characters of the error message
-                for err in errors:
-                    err_str = str(err)
-                    if len(err_str) > limit:
-                        err_str = err_str[:limit] + '...'
-                    msg_status(f'{LOG_NAME}: {self.lang_str}: unsupported msg: {err_str}')
-                    pass;       LOG and self.plog.log_str(f'{err}', type_='dbg', severity=SEVERITY_ERR)
-                    if DEBUG_MESSAGES:
-                        if err and hasattr(err, 'args') and err.args and hasattr(err.args[0], 'dict'):
-                            response_error_dict = err.args[0].dict()
-                            UnsupportedMessage = type('Unsupported Message!', (object,), {
-                                'dict':lambda _: response_error_dict,
-                                '__str__':lambda _: str(response_error_dict),
-                            })
-                            self._dbg_msgs = (self._dbg_msgs + [UnsupportedMessage()])[-128:]
-
-                errors.clear()
-
-                for msg in events:
-                    self._on_lsp_msg(msg)
+                # UPDATED: recv is now a generator, we must iterate manually to handle errors
+                event_iter = self.client.recv(data)
+                while True:
+                    try:
+                        msg = next(event_iter)
+                        self._on_lsp_msg(msg)
+                    except StopIteration:
+                        break
+                    except Exception as err:
+                        # Error handling logic
+                        limit = 100 # limit characters of the error message
+                        err_str = str(err)
+                        if len(err_str) > limit:
+                            err_str = err_str[:limit] + '...'
+                        msg_status(f'{LOG_NAME}: {self.lang_str}: unsupported msg: {err_str}')
+                        pass;       LOG and self.plog.log_str(f'{err}', type_='dbg', severity=SEVERITY_ERR)
+                        
+                        if DEBUG_MESSAGES:
+                            if err and hasattr(err, 'args') and err.args and hasattr(err.args[0], 'dict'):
+                                response_error_dict = err.args[0].dict()
+                                UnsupportedMessage = type('Unsupported Message!', (object,), {
+                                    'dict':lambda _: response_error_dict,
+                                    '__str__':lambda _: str(response_error_dict),
+                                })
+                                self._dbg_msgs = (self._dbg_msgs + [UnsupportedMessage()])[-128:]
+                        # If an error occurs inside the generator, it terminates. 
+                        # Remaining data is left in _recv_buf as per client.py logic.
+                        break
 
             # send Quue
             send_buf = self.client.send()
