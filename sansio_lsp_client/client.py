@@ -5,6 +5,7 @@ from pydantic import ValidationError, TypeAdapter
 
 from .events import (
     Completion,
+    SemanticTokens,
     ConfigurationRequest,
     Declaration,
     Definition,
@@ -39,6 +40,7 @@ from .events import (
     WorkspaceEdit,
     WorkspaceFolders,
     WorkspaceProjectInitializationComplete,
+    Metadata,
 )
 from .io_handler import _make_request, _make_response, _parse_messages
 from .structs import (
@@ -151,6 +153,7 @@ class Client:
         root_uri: t.Optional[str] = None,
         workspace_folders: t.Optional[t.List[WorkspaceFolder]] = None,
         trace: str = "off",
+        settings: t.Optional[t.Any] = None,
     ) -> None:
         self._state = ClientState.NOT_INITIALIZED
 
@@ -183,9 +186,12 @@ class Client:
                 ),
                 "trace": trace,
                 "capabilities": CAPABILITIES,
+                "initializationOptions": settings,
             },
         )
         self._state = ClientState.WAITING_FOR_INITIALIZED
+
+        self._settings = settings
 
     @property
     def state(self) -> ClientState:
@@ -229,140 +235,155 @@ class Client:
             err.message_id = response.id
             return err
 
-        event: Event
+        method = request.method
 
-        match request.method:
-            case "initialize":
-                assert self._state == ClientState.WAITING_FOR_INITIALIZED
-                self._send_notification(
-                    "initialized", params={}
-                )  # params=None doesn't work with gopls
-                event = Initialized.model_validate(response.result)
-                self._state = ClientState.NORMAL
+        if method == "initialize":
+            assert self._state == ClientState.WAITING_FOR_INITIALIZED
+            self._send_notification(
+                "initialized", params={}
+            )  # params=None doesn't work with gopls
+            event = Initialized.model_validate(response.result)
+            self._state = ClientState.NORMAL
+            if self._settings is not None:
+                self.did_change_configuration(self._settings)
 
-            case "shutdown":
-                assert self._state == ClientState.WAITING_FOR_SHUTDOWN
-                event = Shutdown()
-                self._state = ClientState.SHUTDOWN
+        elif method == "shutdown":
+            assert self._state == ClientState.WAITING_FOR_SHUTDOWN
+            event = Shutdown()
+            self._state = ClientState.SHUTDOWN
 
-            case "textDocument/completion":
-                completion_list = None
+        elif method == "textDocument/completion":
+            completion_list = None
 
-                if response.result is not None:
-                    try:
-                        completion_list = CompletionList.model_validate(response.result)
-                    except ValidationError:
-                        if (
-                            isinstance(response.result, dict)
-                            and "items" in response.result
-                        ):
-                            completion_list = CompletionList(
-                                isIncomplete=False,
-                                items=TypeAdapter(
-                                    t.List[CompletionItem]
-                                ).validate_python(response.result["items"]),
-                            )
-
-                event = Completion(
-                    message_id=response.id, completion_list=completion_list
-                )
-
-            case "textDocument/willSaveWaitUntil":
-                event = WillSaveWaitUntilEdits(
-                    edits=TypeAdapter(t.List[TextEdit]).validate_python(response.result)
-                )
-
-            case "textDocument/hover":
-                if response.result is not None:
-                    event = Hover.model_validate(response.result)
-                else:
-                    event = Hover(contents=[])  # null response
-                event.message_id = response.id
-
-            case "textDocument/foldingRange":
-                event = MFoldingRanges(
-                    message_id=response.id,
-                    result=response.result if response.result is not None else [],
-                )
-
-            case "textDocument/signatureHelp":
-                if response.result is not None:
-                    event = SignatureHelp.model_validate(response.result)
-                else:
-                    event = SignatureHelp(signatures=[])  # null response
-                event.message_id = response.id
-
-            case "textDocument/documentSymbol":
-                event = MDocumentSymbols(
-                    message_id=response.id,
-                    result=response.result if response.result is not None else [],
-                )
-
-            case "textDocument/inlayHint":
-                event = TypeAdapter(MInlayHints).validate_python(response)
-                event.message_id = response.id
-
-            case "textDocument/rename":
-                if response.result is not None and isinstance(response.result, dict):
-                    if "documentChanges" in response.result:
-                        document_changes = [
-                            TextDocumentEdit.model_validate(change)
-                            for change in response.result["documentChanges"]
-                        ]
-                        event = WorkspaceEdit(
-                            message_id=response.id, documentChanges=document_changes
+            if response.result is not None:
+                try:
+                    completion_list = CompletionList.model_validate(response.result)
+                except ValidationError:
+                    if (
+                        isinstance(response.result, dict)
+                        and "items" in response.result
+                    ):
+                        completion_list = CompletionList(
+                            isIncomplete=False,
+                            items=TypeAdapter(
+                                t.List[CompletionItem]
+                            ).validate_python(response.result["items"]),
                         )
-                    elif "changes" in response.result:
-                        event = WorkspaceEdit(
-                            message_id=response.id, changes=response.result["changes"]
-                        )
-                    else:
-                        event = WorkspaceEdit(message_id=response.id)
+
+            event = Completion(
+                message_id=response.id, completion_list=completion_list
+            )
+
+        elif method == "textDocument/willSaveWaitUntil":
+            event = WillSaveWaitUntilEdits(
+                edits=TypeAdapter(t.List[TextEdit]).validate_python(response.result)
+            )
+
+        elif method == "textDocument/hover":
+            if response.result is not None:
+                event = Hover.model_validate(response.result)
+            else:
+                event = Hover(contents=[])  # null response
+            event.message_id = response.id
+
+        elif method == "textDocument/foldingRange":
+            event = MFoldingRanges(
+                message_id=response.id,
+                result=response.result if response.result is not None else [],
+            )
+
+        elif method == "textDocument/signatureHelp":
+            if response.result is not None:
+                event = SignatureHelp.model_validate(response.result)
+            else:
+                event = SignatureHelp(signatures=[])  # null response
+            event.message_id = response.id
+
+        elif method == "textDocument/documentSymbol":
+            event = MDocumentSymbols(
+                message_id=response.id,
+                result=response.result if response.result is not None else [],
+            )
+
+        elif method == "textDocument/inlayHint":
+            event = TypeAdapter(MInlayHints).validate_python(response)
+            event.message_id = response.id
+
+        elif method == "textDocument/rename":
+            if response.result is not None and isinstance(response.result, dict):
+                if "documentChanges" in response.result:
+                    document_changes = [
+                        TextDocumentEdit.model_validate(change)
+                        for change in response.result["documentChanges"]
+                    ]
+                    event = WorkspaceEdit(
+                        message_id=response.id, documentChanges=document_changes
+                    )
+                elif "changes" in response.result:
+                    event = WorkspaceEdit(
+                        message_id=response.id, changes=response.result["changes"]
+                    )
                 else:
                     event = WorkspaceEdit(message_id=response.id)
+            else:
+                event = WorkspaceEdit(message_id=response.id)
 
-            # GOTOs
-            case "textDocument/definition":
-                event = TypeAdapter(Definition).validate_python(
-                    {"result": response.result}
-                )
-                event.message_id = response.id
+        elif method == "textDocument/semanticTokens/full":
+            if response.result is None:
+                event = SemanticTokens(data=[])
+            else:
+                event = SemanticTokens.model_validate(response.result)
+            event.message_id = response.id
 
-            case "textDocument/references":
-                event = TypeAdapter(References).validate_python(
-                    {"result": response.result}
-                )
-            case "textDocument/implementation":
-                event = TypeAdapter(Implementation).validate_python(
-                    {"result": response.result}
-                )
-            case "textDocument/declaration":
-                event = TypeAdapter(Declaration).validate_python(
-                    {"result": response.result}
-                )
-            case "textDocument/typeDefinition":
-                event = TypeAdapter(TypeDefinition).validate_python(
-                    {"result": response.result}
-                )
+        # GOTOs
+        elif method == "textDocument/definition":
+            event = TypeAdapter(Definition).validate_python(
+                {"result": response.result}
+            )
+            event.message_id = response.id
 
-            case "textDocument/prepareCallHierarchy":
-                event = TypeAdapter(MCallHierarchItems).validate_python(
-                    {"result": response.result}
-                )
+        elif method == "textDocument/references":
+            event = TypeAdapter(References).validate_python(
+                {"result": response.result}
+            )
 
-            case "textDocument/formatting" | "textDocument/rangeFormatting":
-                event = TypeAdapter(DocumentFormatting).validate_python(
-                    {"result": response.result}
-                )
+        elif method == "textDocument/implementation":
+            event = TypeAdapter(Implementation).validate_python(
+                {"result": response.result}
+            )
 
-            # WORKSPACE
-            case "workspace/symbol":
-                event = TypeAdapter(MWorkspaceSymbols).validate_python(
-                    {"result": response.result}
-                )
+        elif method == "textDocument/declaration":
+            event = TypeAdapter(Declaration).validate_python(
+                {"result": response.result}
+            )
 
-            case _:
-                raise NotImplementedError((response, request))
+        elif method == "textDocument/typeDefinition":
+            event = TypeAdapter(TypeDefinition).validate_python(
+                {"result": response.result}
+            )
+
+        elif method == "textDocument/prepareCallHierarchy":
+            event = TypeAdapter(MCallHierarchItems).validate_python(
+                {"result": response.result}
+            )
+
+        elif method in ("textDocument/formatting", "textDocument/rangeFormatting"):
+            event = TypeAdapter(DocumentFormatting).validate_python(
+                {"result": response.result}
+            )
+
+        # WORKSPACE
+        elif method == "workspace/symbol":
+            event = TypeAdapter(MWorkspaceSymbols).validate_python(
+                {"result": response.result}
+            )
+
+        elif method == "o#/metadata":
+            metadata_result = response.result if isinstance(response.result, dict) else None
+            event = Metadata(message_id=response.id, result=metadata_result)
+
+        else:
+            raise NotImplementedError((response, request))
 
         if isinstance(event, MethodResponse):
             event.message_id = response.id
@@ -457,16 +478,23 @@ class Client:
         else:
             raise NotImplementedError(request)
 
-    def recv(self, data: bytes) -> t.Iterator[Event]:
+    def recv(self, data: bytes, errors: t.Optional[t.List[Exception]] = None) -> t.List[Event]:
         self._recv_buf += data
-        # Make sure to use lots of iterators, so that if one message fails to
-        # parse, the messages before it are yielded successfully before the
-        # error, and the messages after it are left in _recv_buf.
+
+        events: t.List[Event] = []
         for message in _parse_messages(self._recv_buf):
-            if isinstance(message, Response):
-                yield self._handle_response(message)
-            else:
-                yield self._handle_request(message)
+            try:
+                if isinstance(message, Response):
+                    events.append(self._handle_response(message))
+                elif isinstance(message, Request):
+                    events.append(self._handle_request(message))
+                else:
+                    raise RuntimeError("Unexpected message type")
+            except Exception as exc:
+                if errors is not None:
+                    errors.append(exc)
+
+        return events
 
     def send(self) -> bytes:
         send_buf = self._send_buf[:]
@@ -515,6 +543,7 @@ class Client:
         self._send_notification(
             method="workspace/didChangeConfiguration", params={"settings": settings}
         )
+        self._settings = settings
 
     def will_save(
         self, text_document: TextDocumentIdentifier, reason: TextDocumentSaveReason
@@ -573,6 +602,16 @@ class Client:
         if context is not None:
             params.update(context.model_dump())
         return self._send_request(method="textDocument/completion", params=params)
+
+    def semantic_tokens(
+        self,
+        text_document: TextDocumentIdentifier,
+    ) -> Id:
+        assert self._state == ClientState.NORMAL
+        return self._send_request(
+            method="textDocument/semanticTokens/full",
+            params={"textDocument": text_document.model_dump()},
+        )
 
     def rename(
         self,
@@ -692,3 +731,16 @@ class Client:
             "options": options.model_dump(),
         }
         return self._send_request(method="textDocument/rangeFormatting", params=params)
+
+    def metadata(self, params: JSONDict) -> Id:
+        assert self._state == ClientState.NORMAL
+        return self._send_request(method="o#/metadata", params=params)
+        
+    # Legacy alias used by existing code paths
+    def range_formatting(
+        self,
+        text_document: TextDocumentIdentifier,
+        range: Range,
+        options: FormattingOptions,
+    ) -> Id:
+        return self.rangeFormatting(text_document=text_document, range=range, options=options)

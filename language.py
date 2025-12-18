@@ -494,22 +494,21 @@ class Language:
 
             reqpos = self.request_positions.pop(msg.message_id, None)
 
-            if msg.completion_list:
-                items = msg.completion_list['items']
+            completion_list = msg.completion_list
+
+            if completion_list:
+                items = [item.model_dump() for item in completion_list.items]
+                is_incomplete = completion_list.isIncomplete
                 pass;       LOG and print(f'got completion({len(items)}): {time.time():.3f} {msg.message_id} in {list(self.request_positions)}')
             else:
                 items = []
-
-            if items is None:
-                items = []
-            if msg.completion_list is None:
-                msg.completion_list = {'isIncomplete': 'false'} # dummy data if CompletionList==null
+                is_incomplete = False
 
             if reqpos:
                 try:
                     compl = CompletionMan(self, carets=reqpos.carets, h_ed=reqpos.h_ed)
-                    pass;       LOG_CACHE and print("using fresh results.","items:",len(items)," incomplete:",msg.completion_list['isIncomplete'])
-                    _last_complete = compl.prepare_complete(msg.message_id, items, msg.completion_list['isIncomplete'] == 'true')
+                    pass;       LOG_CACHE and print("using fresh results.","items:",len(items)," incomplete:",is_incomplete)
+                    _last_complete = compl.prepare_complete(msg.message_id, items, is_incomplete)
                     if _last_complete:
                         self._last_complete = _last_complete
                         compl.show_complete(self._last_complete.message_id, self._last_complete.filtered_items)

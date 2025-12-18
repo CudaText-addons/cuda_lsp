@@ -1,6 +1,6 @@
 import typing as t
 
-from pydantic import BaseModel, PrivateAttr
+from pydantic import BaseModel, PrivateAttr, Field
 
 if t.TYPE_CHECKING:  # avoid import cycle at runtime
     from .client import Client
@@ -153,6 +153,23 @@ class Hover(MethodResponse):
     ]
     range: t.Optional[Range] = None
 
+    def m_str(self) -> str:
+        """Return hover contents as markdown-compatible string (legacy API)."""
+
+        def _render(item: t.Union[MarkedString, MarkupContent, str]) -> str:
+            if isinstance(item, MarkupContent):
+                return item.value
+            if isinstance(item, MarkedString):
+                lang = item.language or ""
+                value = item.value
+                return f"```{lang}\n{value}\n```" if lang else value
+            return str(item)
+
+        if isinstance(self.contents, list):
+            return "\n\n".join(_render(item) for item in self.contents)
+
+        return _render(self.contents)
+
 
 class SignatureHelp(MethodResponse):
     signatures: t.List[SignatureInformation]
@@ -166,6 +183,10 @@ class SignatureHelp(MethodResponse):
         sig = self.signatures[active_sig]
         return sig.label
 
+# XXX: model for semantic tokens full response
+class SemanticTokens(MethodResponse):
+    resultId: t.Optional[str] = None
+    data: t.List[int] = Field(default_factory=list)
 
 class Definition(MethodResponse):
     result: t.Union[Location, t.List[t.Union[Location, LocationLink]], None] = None
@@ -245,3 +266,8 @@ class ConfigurationRequest(ServerRequest):
 
     def reply(self, result: t.List[t.Any]) -> None:
         self._client._send_response(id=self._id, result=result)
+
+class Metadata(Event):
+    message_id: t.Optional[Id] = None
+    result: t.Optional[JSONDict] = None
+    

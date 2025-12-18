@@ -2,8 +2,6 @@ import json
 import re
 import typing as t
 
-from pydantic import TypeAdapter
-
 from .structs import JSONDict, JSONList, Request, Response, Id
 
 _CONTENT_TYPE_PARAM_RE = re.compile(r'(\w+)\s*=\s*(?:(?:"([^"]*)")|([^;,\s]*))')
@@ -48,7 +46,7 @@ def _make_request(
 
 
 def _make_response(
-    id: int | str,  # TODO: does this make sense?
+    id: t.Union[int, str],  # TODO: does this make sense?
     result: t.Optional[t.Union[JSONDict, JSONList]] = None,
     error: t.Optional[JSONDict] = None,
     *,
@@ -58,10 +56,11 @@ def _make_response(
 
     # Set up the actual JSONRPC content and encode it.
     content: JSONDict = {"jsonrpc": "2.0", "id": id}
-    if result is not None:
-        content["result"] = result
     if error is not None:
         content["error"] = error
+    else:
+        # JSON-RPC requires a result field on success, even when it's null.
+        content["result"] = result
     encoded_content = json.dumps(content).encode(encoding)
 
     # Write the headers to the request body
@@ -74,7 +73,7 @@ def _make_response(
 
 
 # Example: "application/vscode-jsonrpc; charset=utf-8" --> ("application/vscode-jsonrpc", {"charset": "utf-8"})
-def _parse_content_type(header: str) -> tuple[str, dict[str, str]]:
+def _parse_content_type(header: str) -> t.Tuple[str, t.Dict[str, str]]:
     content_type, _, param_string = header.partition(";")
     content_type = content_type.strip().lower()
 
@@ -172,11 +171,15 @@ def _parse_one_message(
     else:
         del response_buf[:-unused_bytes_count]
 
-    def parse_request_or_response(
-        data: JSONDict,
-    ) -> t.Union[Request, Response]:
-        del data["jsonrpc"]
-        return TypeAdapter(t.Union[Request, Response]).validate_python(data)
+    def parse_request_or_response(data: JSONDict) -> t.Union[Request, Response]:
+        # Work on a shallow copy so the caller's decoded JSON remains intact
+        payload = dict(data)
+        payload.pop("jsonrpc", None)
+
+        if "method" in payload:
+            return Request.model_validate(payload)
+
+        return Response.model_validate(payload)
 
     content = json.loads(raw_content.decode(encoding))
 

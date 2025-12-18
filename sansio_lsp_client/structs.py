@@ -69,6 +69,29 @@ class Position(BaseModel):
     def as_tuple(self) -> t.Tuple[int, int]:
         return (self.line, self.character)
 
+    def _cmp_key(self) -> t.Tuple[int, int]:
+        return (self.line, self.character)
+
+    def __lt__(self, other: object) -> bool:
+        if not isinstance(other, Position):
+            return NotImplemented
+        return self._cmp_key() < other._cmp_key()
+
+    def __le__(self, other: object) -> bool:
+        if not isinstance(other, Position):
+            return NotImplemented
+        return self._cmp_key() <= other._cmp_key()
+
+    def __gt__(self, other: object) -> bool:
+        if not isinstance(other, Position):
+            return NotImplemented
+        return self._cmp_key() > other._cmp_key()
+
+    def __ge__(self, other: object) -> bool:
+        if not isinstance(other, Position):
+            return NotImplemented
+        return self._cmp_key() >= other._cmp_key()
+
 
 class Range(BaseModel):
     start: Position
@@ -96,7 +119,7 @@ class Range(BaseModel):
 class TextDocumentContentChangeEvent(BaseModel):
     text: str
     range: t.Optional[Range]
-    rangeLength: t.Optional[int]  # deprecated, use .range
+    rangeLength: t.Optional[int] = None  # deprecated, use .range
 
     def model_dump(self, **kwargs: t.Any) -> t.Dict[str, t.Any]:
         d = super().model_dump(**kwargs)
@@ -272,6 +295,14 @@ class DiagnosticSeverity(enum.IntEnum):
     INFORMATION = 3
     HINT = 4
 
+    def short_name(self) -> str:
+        return {
+            DiagnosticSeverity.ERROR: "Err",
+            DiagnosticSeverity.WARNING: "Warn",
+            DiagnosticSeverity.INFORMATION: "Info",
+            DiagnosticSeverity.HINT: "Hint",
+        }.get(self, "")
+
 
 class Diagnostic(BaseModel):
     range: Range
@@ -425,6 +456,27 @@ class Registration(BaseModel):
     id: str
     method: str
     registerOptions: t.Optional[t.Any] = None
+
+
+class DocumentFilter(BaseModel):
+    language: t.Optional[str] = None
+    scheme: t.Optional[str] = None
+    pattern: t.Optional[str] = None
+
+
+DocumentSelector = t.List[DocumentFilter]
+
+
+class CompletionOptionsCompletionItem(BaseModel):
+    labelDetailsSupport: t.Optional[bool] = None
+
+
+class CompletionRegistrationOptions(BaseModel):
+    documentSelector: t.Optional[DocumentSelector] = None
+    triggerCharacters: t.Optional[t.List[str]] = None
+    allCommitCharacters: t.Optional[t.List[str]] = None
+    resolveProvider: t.Optional[bool] = None
+    completionItem: t.Optional[CompletionOptionsCompletionItem] = None
 
 
 class FormattingOptions(BaseModel):
