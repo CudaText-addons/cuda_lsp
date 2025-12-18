@@ -48,7 +48,7 @@ class ResponseError(Event):
     message_id: t.Optional[Id] = None
     code: int
     message: str
-    data: t.Optional[t.Union[str, int, float, bool, t.List[t.Any], JSONDict]] = None
+    data: t.Optional[t.Union[str, int, float, bool, t.List[t.Any], JSONDict, None]] = None
 
 
 class ServerRequest(Event):
@@ -76,7 +76,7 @@ class ShowMessage(ServerNotification):
 class ShowMessageRequest(ServerRequest):
     type: MessageType
     message: str
-    actions: t.Optional[t.List[MessageActionItem]]
+    actions: t.Optional[t.List[MessageActionItem]] = None
 
     def reply(self, action: t.Optional[MessageActionItem] = None) -> None:
         """
@@ -136,7 +136,7 @@ class Completion(Event):
 
 # XXX: not sure how to name this event.
 class WillSaveWaitUntilEdits(Event):
-    edits: t.Optional[t.List[TextEdit]]
+    edits: t.Optional[t.List[TextEdit]] = None
 
 
 class PublishDiagnostics(ServerNotification):
@@ -256,7 +256,7 @@ class DocumentFormatting(MethodResponse):
 
 
 class WorkspaceFolders(ServerRequest):
-    result: t.Optional[t.List[WorkspaceFolder]]
+    result: t.Optional[t.List[WorkspaceFolder]] = None
 
     def reply(self, folders: t.Optional[t.List[WorkspaceFolder]] = None) -> None:
         """

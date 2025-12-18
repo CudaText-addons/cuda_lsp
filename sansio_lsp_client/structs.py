@@ -53,11 +53,11 @@ class TextDocumentIdentifier(BaseModel):
 
 
 class OptionalVersionedTextDocumentIdentifier(TextDocumentIdentifier):
-    version: t.Optional[int]
+    version: t.Optional[int] = None
 
 
 class VersionedTextDocumentIdentifier(TextDocumentIdentifier):
-    version: t.Optional[int]
+    version: t.Optional[int] = None
 
 
 # Sorting tip:  sorted(positions, key=(lambda p: p.as_tuple()))
@@ -183,7 +183,7 @@ class TextDocumentEdit(BaseModel):
 class Command(BaseModel):
     title: str
     command: str
-    arguments: t.Optional[t.List[t.Any]]
+    arguments: t.Optional[t.List[t.Any]] = None
 
 
 class InsertTextFormat(enum.IntEnum):

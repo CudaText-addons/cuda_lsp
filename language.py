@@ -417,16 +417,16 @@ class Language:
             while not self._read_q.empty():
                 data = self._read_q.get()
 
-                # UPDATED: recv is now a generator, we must iterate manually to handle errors
+                # recv now returns an iterator, so we must iterate manually to handle errors. consume the recv generator with proper error handling
                 event_iter = self.client.recv(data)
                 while True:
                     try:
                         msg = next(event_iter)
-                        self._on_lsp_msg(msg)
                     except StopIteration:
+                        # Normal end of generator
                         break
                     except Exception as err:
-                        # Error handling logic
+                        # Error during message parsing (inside generator)
                         limit = 100 # limit characters of the error message
                         err_str = str(err)
                         if len(err_str) > limit:
@@ -438,15 +438,24 @@ class Language:
                             if err and hasattr(err, 'args') and err.args and hasattr(err.args[0], 'dict'):
                                 response_error_dict = err.args[0].dict()
                                 UnsupportedMessage = type('Unsupported Message!', (object,), {
-                                    'dict':lambda _: response_error_dict,
-                                    '__str__':lambda _: str(response_error_dict),
+                                    'dict': lambda _: response_error_dict,
+                                    '__str__': lambda _: str(response_error_dict),
                                 })
                                 self._dbg_msgs = (self._dbg_msgs + [UnsupportedMessage()])[-128:]
                         # If an error occurs inside the generator, it terminates. 
                         # Remaining data is left in _recv_buf as per client.py logic.
-                        break
+                        break  # Generator is terminated
+                    
+                    # Now handle the message - with separate error handling
+                    try:
+                        self._on_lsp_msg(msg)
+                    except Exception as err:
+                        # Error during message processing
+                        print(f'ERROR: LSP Message handler error: {LOG_NAME}: {self.lang_str} - {err}')
+                        pass;       LOG and traceback.print_exc()
+                        # Continue processing next message (don't break)
 
-            # send Quue
+            # send Queue
             send_buf = self.client.send()
             if send_buf:
                 self._send_q.put(send_buf)
