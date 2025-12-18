@@ -45,18 +45,6 @@ from .book import EditorDoc
 
 import urllib.parse
 
-ver = sys.version_info
-if (ver.major, ver.minor) < (3, 7):
-    modules36_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lsp_modules36')
-    #sys.path.append(modules36_dir)
-    # instead of append use insert
-    sys.path.insert(0, modules36_dir)
-
-if (ver.major, ver.minor) > (3, 12):
-    modules313_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lsp_modules313')
-    sys.path.insert(0, modules313_dir)
-
-
 from .sansio_lsp_client import client as lsp
 from .sansio_lsp_client import events
 from .sansio_lsp_client.structs import (
@@ -494,21 +482,22 @@ class Language:
 
             reqpos = self.request_positions.pop(msg.message_id, None)
 
-            completion_list = msg.completion_list
-
-            if completion_list:
-                items = [item.model_dump() for item in completion_list.items]
-                is_incomplete = completion_list.isIncomplete
+            if msg.completion_list:
+                items = msg.completion_list['items']
                 pass;       LOG and print(f'got completion({len(items)}): {time.time():.3f} {msg.message_id} in {list(self.request_positions)}')
             else:
                 items = []
-                is_incomplete = False
+
+            if items is None:
+                items = []
+            if msg.completion_list is None:
+                msg.completion_list = {'isIncomplete': 'false'} # dummy data if CompletionList==null
 
             if reqpos:
                 try:
                     compl = CompletionMan(self, carets=reqpos.carets, h_ed=reqpos.h_ed)
-                    pass;       LOG_CACHE and print("using fresh results.","items:",len(items)," incomplete:",is_incomplete)
-                    _last_complete = compl.prepare_complete(msg.message_id, items, is_incomplete)
+                    pass;       LOG_CACHE and print("using fresh results.","items:",len(items)," incomplete:",msg.completion_list['isIncomplete'])
+                    _last_complete = compl.prepare_complete(msg.message_id, items, msg.completion_list['isIncomplete'] == 'true')
                     if _last_complete:
                         self._last_complete = _last_complete
                         compl.show_complete(self._last_complete.message_id, self._last_complete.filtered_items)
@@ -1187,7 +1176,7 @@ class Language:
                 if range_:
                     docid = eddoc.get_docid()
                     options = eddoc.get_ed_format_opts()
-                    id = self.client.range_formatting(text_document=docid, range=range_, options=options)
+                    id = self.client.rangeFormatting(text_document=docid, range=range_, options=options)
                     self._save_req_pos(id=id, eddoc=eddoc, target_pos_caret=None) # save current editor handle
 
 
@@ -1200,7 +1189,7 @@ class Language:
                 self.send_changes(eddoc) # for later: server can give edits on save
 
                 docid = eddoc.get_docid()
-                id = self.client.doc_symbol(docid)
+                id = self.client.documentSymbol(docid)
 
                 self._save_req_pos(id=id, eddoc=eddoc, target_pos_caret=None) # save current editor handle
                 self.process_queues()
@@ -1210,7 +1199,7 @@ class Language:
         self.send_changes(eddoc)
 
         docpos = eddoc.get_docpos()
-        id = self.client.call_hierarchy_in(docpos)
+        id = self.client.prepareCallHierarchy(docpos)
 
 
     def workspace_symbol(self, eddoc):
