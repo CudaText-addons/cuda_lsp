@@ -43,7 +43,7 @@ class Event(BaseModel):
 
 
 class ResponseError(Event):
-    message_id: t.Optional[Id]
+    message_id: t.Optional[Id] = None
     code: int
     message: str
     data: t.Optional[ t.Union[
@@ -53,7 +53,7 @@ class ResponseError(Event):
         list,
         JSONDict,
         None,
-    ]]
+    ]] = None
 
 
 class ServerRequest(Event):
@@ -81,7 +81,7 @@ class ShowMessage(ServerNotification):
 class ShowMessageRequest(ServerRequest):
     type: MessageType
     message: str
-    actions: t.Optional[t.List[MessageActionItem]]
+    actions: t.Optional[t.List[MessageActionItem]] = None
 
     def reply(self, action: t.Optional[MessageActionItem] = None) -> None:
         """
@@ -91,7 +91,7 @@ class ShowMessageRequest(ServerRequest):
         are added to the client's internal send buffer.
         """
         self._client._send_response(
-            id=self._id, result=action.dict() if action is not None else None
+            id=self._id, result=action.model_dump() if action is not None else None
         )
 
 
@@ -126,12 +126,12 @@ class WorkDoneProgressEnd(WorkDoneProgress):
 class Completion(Event):
     message_id: Id
     #completion_list: t.Optional[CompletionList]
-    completion_list: t.Optional[t.Dict[str, t.Any]] # make it raw dict (optimization)
+    completion_list: t.Optional[t.Dict[str, t.Any]] = None  # make it raw dict (optimization)
 
 
 # XXX: not sure how to name this event.
 class WillSaveWaitUntilEdits(Event):
-    edits: t.Optional[t.List[TextEdit]]
+    edits: t.Optional[t.List[TextEdit]] = None
 
 
 class PublishDiagnostics(ServerNotification):
@@ -144,14 +144,14 @@ class PublishDiagnostics(ServerNotification):
     * range?: Range;
 """
 class Hover(Event):
-    message_id: t.Optional[Id] # custom...
+    message_id: t.Optional[Id] = None # custom...
     contents: t.Union[
             t.List[t.Union[MarkedString, str]],
             MarkedString, # .language, .value
             MarkupContent, # kind: MarkupKind, value: str
             str,
             ]
-    range: t.Optional[Range]
+    range: t.Optional[Range] = None
 
     # DBG
     def m_str(self):
@@ -167,10 +167,10 @@ class Hover(Event):
         return item_str(self.contents)
 
 class SignatureHelp(Event):
-    message_id: t.Optional[Id] # custom...
+    message_id: t.Optional[Id] = None # custom...
     signatures: t.List[SignatureInformation]
-    activeSignature: t.Optional[int]
-    activeParameter: t.Optional[int]
+    activeSignature: t.Optional[int] = None
+    activeParameter: t.Optional[int] = None
 
     def get_hint_str(self):
         if len(self.signatures) == 0:
@@ -186,53 +186,61 @@ class SignatureHelp(Event):
 
 
 class SemanticTokens(Event):
-    message_id: t.Optional[Id]
-    resultId: t.Optional[str]
+    message_id: t.Optional[Id] = None
+    resultId: t.Optional[str] = None
     data: t.List[int]
     
 
 class Definition(Event):
-    message_id: t.Optional[Id]
+    message_id: t.Optional[Id] = None
     result: t.Union[
         Location,
         t.List[t.Union[Location, LocationLink]],
-        None]
+        None] = None
+
 
 # result is a list, so putting i a custom class
 class References(Event):
-    message_id: t.Optional[Id]
-    result: t.Union[t.List[Location], None]
+    message_id: t.Optional[Id] = None
+    result: t.Union[t.List[Location], None] = None
+
 
 class MCallHierarchItems(Event):
-    result: t.Union[t.List[CallHierarchyItem], None]
+    result: t.Union[t.List[CallHierarchyItem], None] = None
+
 
 class Implementation(Event):
-    message_id: t.Optional[Id]
+    message_id: t.Optional[Id] = None
     result: t.Union[
         Location,
         t.List[t.Union[Location, LocationLink]],
-        None]
+        None] = None
+
 
 class MWorkspaceSymbols(Event):
-    result: t.Union[t.List[SymbolInformation], None]
+    result: t.Union[t.List[SymbolInformation], None] = None
+
 
 class MDocumentSymbols(Event):
-    message_id: t.Optional[Id] # custom...
-    result: t.Union[t.List[SymbolInformation], t.List[DocumentSymbol], None]
+    message_id: t.Optional[Id] = None # custom...
+    result: t.Union[t.List[SymbolInformation], t.List[DocumentSymbol], None] = None
+
 
 class Declaration(Event):
-    message_id: t.Optional[Id]
+    message_id: t.Optional[Id] = None
     result: t.Union[
         Location,
         t.List[t.Union[Location, LocationLink]],
-        None]
+        None] = None
+
 
 class TypeDefinition(Event):
-    message_id: t.Optional[Id]
+    message_id: t.Optional[Id] = None
     result: t.Union[
         Location,
         t.List[t.Union[Location, LocationLink]],
-        None]
+        None] = None
+
 
 class RegisterCapabilityRequest(ServerRequest):
     registrations: t.List[Registration]
@@ -241,11 +249,12 @@ class RegisterCapabilityRequest(ServerRequest):
         self._client._send_response(id=self._id, result={})
 
 class DocumentFormatting(Event):
-    message_id: t.Optional[Id] # custom...
-    result: t.Union[t.List[TextEdit], None]
+    message_id: t.Optional[Id] = None # custom...
+    result: t.Union[t.List[TextEdit], None] = None
+
 
 class WorkspaceFolders(ServerRequest):
-    result: None
+    result: None = None
 
     def reply(self, folders: t.Optional[t.List[WorkspaceFolder]] = None) -> None:
         """
@@ -255,7 +264,7 @@ class WorkspaceFolders(ServerRequest):
         are added to the client's internal send buffer.
         """
         self._client._send_response(
-            id=self._id, result=[f.dict() for f in folders] if folders is not None else None
+            id=self._id, result=[f.model_dump() for f in folders] if folders is not None else None
         )
 
 class ConfigurationRequest(ServerRequest):

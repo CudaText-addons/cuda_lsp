@@ -1,7 +1,7 @@
 import enum
 import typing as t
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 # XXX: Replace the non-commented-out code with what's commented out once nested
 # types become a thing in mypy.
@@ -17,17 +17,17 @@ ProgressToken = t.Union[int, str]
 
 class Request(BaseModel):
     method: str
-    id: t.Optional[Id]
-    params: t.Optional[JSONDict]
+    id: t.Optional[Id] = None
+    params: t.Optional[JSONDict] = None
 
 
 class Response(BaseModel):
-    id: t.Optional[Id]
+    id: t.Optional[Id] = None
     result: t.Optional[t.Union[ # MY
         t.List[t.Any],
         JSONDict,
-        ]]
-    error: t.Optional[JSONDict]
+        ]] = None
+    error: t.Optional[JSONDict] = None
 
 
 class MessageType(enum.IntEnum):
@@ -53,7 +53,7 @@ class TextDocumentIdentifier(BaseModel):
 
 
 class VersionedTextDocumentIdentifier(TextDocumentIdentifier):
-    version: t.Optional[int]
+    version: t.Optional[int] = None
 
 
 class Position(BaseModel):
@@ -91,16 +91,21 @@ class Range(BaseModel):
 
 class TextDocumentContentChangeEvent(BaseModel):
     text: str
-    range: t.Optional[Range]
-    rangeLength: t.Optional[int] # deprecated, use .range
+    range: t.Optional[Range] = None
+    rangeLength: t.Optional[int] = None # deprecated, use .range
 
-
-    def dict(self):
-        d = super(TextDocumentContentChangeEvent, self).dict()
-        # css server requires un-filled values to be absent
-        if self.rangeLength is None:    del d['rangeLength']
-        if self.range is None:          del d['range']
+    def model_dump(self, **kwargs):
+        d = super().model_dump(**kwargs)
+        # vscode-css server requires un-filled values to be absent
+        if self.rangeLength is None:
+            del d['rangeLength']
+        if self.range is None:
+            del d['range']
         return d
+
+    # Keep dict() for backwards compatibility
+    def dict(self, **kwargs):
+        return self.model_dump(**kwargs)
 
     @classmethod
     def range_change(
@@ -145,7 +150,7 @@ class CompletionTriggerKind(enum.IntEnum):
 
 class CompletionContext(BaseModel):
     triggerKind: CompletionTriggerKind
-    triggerCharacter: t.Optional[str]
+    triggerCharacter: t.Optional[str] = None
 
 
 class MarkupKind(enum.Enum):
@@ -166,7 +171,7 @@ class TextEdit(BaseModel):
 class Command(BaseModel):
     title: str
     command: str
-    arguments: t.Optional[t.List[t.Any]]
+    arguments: t.Optional[t.List[t.Any]] = None
 
 
 class InsertTextFormat(enum.IntEnum):
@@ -205,21 +210,21 @@ class CompletionItemTag(enum.IntEnum):
 
 class CompletionItem(BaseModel):
     label: str
-    kind: t.Optional[CompletionItemKind]
-    tags: t.Optional[t.List[CompletionItemTag]]
-    detail: t.Optional[str] # human string, line symbol info -- None in C#
-    documentation: t.Union[str, MarkupContent, None]
-    deprecated: t.Optional[bool] # is deprecated
-    preselect: t.Optional[bool] #DONE selected item
-    sortText: t.Optional[str] # already sorted
-    filterText: t.Optional[str] # ?
-    insertText: t.Optional[str] #DONE
-    insertTextFormat: t.Optional[InsertTextFormat] # {$3:foo} decline capability for now
-    textEdit: t.Optional[TextEdit] #DONE text + ranges to replace
-    additionalTextEdits: t.Optional[t.List[TextEdit]] #DONE like an import
-    commitCharacters: t.Optional[t.List[str]] # api missing
-    command: t.Optional[Command] #TODOz later, when added commands
-    data: t.Optional[t.Any] # just index in C#
+    kind: t.Optional[CompletionItemKind] = None
+    tags: t.Optional[t.List[CompletionItemTag]] = None
+    detail: t.Optional[str] = None # human string, line symbol info -- None in C#
+    documentation: t.Union[str, MarkupContent, None] = None
+    deprecated: t.Optional[bool] = None # is deprecated
+    preselect: t.Optional[bool] = None #DONE selected item
+    sortText: t.Optional[str] = None # already sorted
+    filterText: t.Optional[str] = None # ?
+    insertText: t.Optional[str] = None #DONE
+    insertTextFormat: t.Optional[InsertTextFormat] = None # {$3:foo} decline capability for now
+    textEdit: t.Optional[TextEdit] = None #DONE text + ranges to replace
+    additionalTextEdits: t.Optional[t.List[TextEdit]] = None #DONE like an import
+    commitCharacters: t.Optional[t.List[str]] = None # api missing
+    command: t.Optional[Command] = None #TODOz later, when added commands
+    data: t.Optional[t.Any] = None # just index in C#
 
 
 class CompletionList(BaseModel):
@@ -239,7 +244,7 @@ class Location(BaseModel):
 
 
 class LocationLink(BaseModel):
-    originSelectionRange: t.Optional[Range]
+    originSelectionRange: t.Optional[Range] = None
     targetUri: str # DocumentUri...
     targetRange: Range
     targetSelectionRange: Range
@@ -266,17 +271,18 @@ class Diagnostic(BaseModel):
     range: Range
 
     #severity: DiagnosticSeverity
-    severity: t.Optional[DiagnosticSeverity]
+    severity: t.Optional[DiagnosticSeverity] = None
 
     # TODO: Support this as an union of str and int
-    code: t.Optional[t.Any]
+    code: t.Optional[t.Any] = None
 
-    source: t.Optional[str]
+    source: t.Optional[str] = None
 
     #message: t.Optional[str]
     message: str
 
-    relatedInformation: t.Optional[t.List[DiagnosticRelatedInformation]]
+    relatedInformation: t.Optional[t.List[DiagnosticRelatedInformation]] = None
+
 
 """ HOVER #################
 Hover:
@@ -305,13 +311,15 @@ class ParameterInformation(BaseModel):
     label: t.Union[
         str,
         t.Tuple[int, int]]
-    documentation: t.Optional[t.Union[str, MarkupContent]]
+    documentation: t.Optional[t.Union[str, MarkupContent]] = None
+
 
 class SignatureInformation(BaseModel):
     label: str
-    documentation: t.Optional[t.Union[MarkupContent, str]]
-    parameters: t.Optional[t.List[ParameterInformation]]
-    activeParameter: t.Optional[int]
+    documentation: t.Optional[t.Union[MarkupContent, str]] = None
+    parameters: t.Optional[t.List[ParameterInformation]] = None
+    activeParameter: t.Optional[int] = None
+
 
 class SymbolKind(enum.IntEnum):
     FILE = 1
@@ -347,22 +355,18 @@ class SymbolTag(enum.IntEnum):
 class CallHierarchyItem(BaseModel):
     name: str
     kind: SymbolKind
-    tags: t.Optional[SymbolTag]
-    detail: t.Optional[str]
+    tags: t.Optional[SymbolTag] = None
+    detail: t.Optional[str] = None
     uri: str
     range: Range
     selectionRange: Range
-    data: t.Optional[t.Any]
+    data: t.Optional[t.Any] = None
+
 
 class CallHierarchyIncomingCall(BaseModel):
-    from_: CallHierarchyItem
+    from_: CallHierarchyItem = Field(alias="from")
     fromRanges: t.List[Range]
 
-    class Config:
-        # 'from' is an invalid field - re-mapping
-        fields = {
-        'from_': 'from'
-        }
 
 class CallHierarchyOutgoingCall(BaseModel):
     to: CallHierarchyItem
@@ -377,10 +381,10 @@ class TextDocumentSyncKind(enum.IntEnum):
 class SymbolInformation(BaseModel): # symbols: flat list
     name: str
     kind: SymbolKind
-    tags: t.Optional[t.List[SymbolTag]]
-    deprecated: t.Optional[bool]
+    tags: t.Optional[t.List[SymbolTag]] = None
+    deprecated: t.Optional[bool] = None
     location: Location
-    containerName: t.Optional[str]
+    containerName: t.Optional[str] = None
 
     def mpos(self):
         return self.location.range.start.character, self.location.range.start.line
@@ -388,49 +392,50 @@ class SymbolInformation(BaseModel): # symbols: flat list
 #TODO test handling
 class DocumentSymbol(BaseModel): # symbols: hierarchy
     name: str
-    detail: t.Optional[str]
+    detail: t.Optional[str] = None
     kind: SymbolKind
-    tags: t.Optional[t.List[SymbolTag]]
-    deprecated: t.Optional[bool]
+    tags: t.Optional[t.List[SymbolTag]] = None
+    deprecated: t.Optional[bool] = None
     range: Range
     selectionRange: Range
     # https://stackoverflow.com/questions/36193540
-    children: t.Optional[t.List['DocumentSymbol']]
+    children: t.Optional[t.List['DocumentSymbol']] = None
 
     def mpos(self):
         return self.selectionRange.start.character, self.selectionRange.start.line
 
-DocumentSymbol.update_forward_refs()
+DocumentSymbol.model_rebuild()
 
 
 class Registration(BaseModel):
     id: str
     method: str
-    registerOptions: t.Optional[t.Any]
+    registerOptions: t.Optional[t.Any] = None
     
 class DocumentFilter(BaseModel):
-    language: t.Optional[str]
-    scheme: t.Optional[str]
-    pattern: t.Optional[str]
+    language: t.Optional[str] = None
+    scheme: t.Optional[str] = None
+    pattern: t.Optional[str] = None
 
 DocumentSelector = t.List[DocumentFilter]
 
 class CompletionOptionsCompletionItem(BaseModel):
-    labelDetailsSupport: t.Optional[bool]
+    labelDetailsSupport: t.Optional[bool] = None
 
 class CompletionRegistrationOptions(BaseModel):
     documentSelector: t.Union[DocumentSelector, None]           # from TextDocumentRegistrationOptions
-    triggerCharacters: t.Optional[t.List[str]]                  # from CompletionOptions
-    allCommitCharacters: t.Optional[t.List[str]]                #
-    resolveProvider: t.Optional[bool]                           #
-    completionItem: t.Optional[CompletionOptionsCompletionItem] #
+    triggerCharacters: t.Optional[t.List[str]] = None                  # from CompletionOptions
+    allCommitCharacters: t.Optional[t.List[str]] = None                #
+    resolveProvider: t.Optional[bool] = None                           #
+    completionItem: t.Optional[CompletionOptionsCompletionItem] = None #
+
 
 class FormattingOptions(BaseModel):
     tabSize: int
     insertSpaces: bool
-    trimTrailingWhitespace: t.Optional[bool]
-    insertFinalNewline: t.Optional[bool]
-    trimFinalNewlines: t.Optional[bool]
+    trimTrailingWhitespace: t.Optional[bool] = None
+    insertFinalNewline: t.Optional[bool] = None
+    trimFinalNewlines: t.Optional[bool] = None
 
 class WorkspaceFolder(BaseModel):
     uri: str
@@ -451,21 +456,23 @@ class MWorkDoneProgressKind(enum.Enum):
 class WorkDoneProgressBeginValue(WorkDoneProgressValue):
     kind: MWorkDoneProgressKind # BEGIN
     title: str
-    cancellable: t.Optional[bool]
-    message: t.Optional[str]
-    percentage: t.Optional[int]
+    cancellable: t.Optional[bool] = None
+    message: t.Optional[str] = None
+    percentage: t.Optional[int] = None
+
 
 class WorkDoneProgressReportValue(WorkDoneProgressValue):
     kind: MWorkDoneProgressKind # REPORT
-    cancellable: t.Optional[bool]
-    message: t.Optional[str]
-    percentage: t.Optional[int]
+    cancellable: t.Optional[bool] = None
+    message: t.Optional[str] = None
+    percentage: t.Optional[int] = None
+
 
 class WorkDoneProgressEndValue(WorkDoneProgressValue):
     kind: MWorkDoneProgressKind # END
-    message: t.Optional[str]
+    message: t.Optional[str] = None
 
 
 class ConfigurationItem(BaseModel):
-    scopeUri: t.Optional[str]
-    section: t.Optional[str]
+    scopeUri: t.Optional[str] = None
+    section: t.Optional[str] = None

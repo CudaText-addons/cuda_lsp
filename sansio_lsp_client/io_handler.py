@@ -2,7 +2,7 @@ import cgi
 import json
 import typing as t
 
-from pydantic import parse_obj_as
+from pydantic import TypeAdapter
 
 from .structs import Request, Response, JSONDict
 
@@ -157,7 +157,7 @@ def _parse_one_message(
 
     def parse_request_or_response(data: JSONDict,) -> t.Union[Request, Response]:
         del data["jsonrpc"]
-        return parse_obj_as(t.Union[Request, Response], data)  # type: ignore
+        return TypeAdapter(t.Union[Request, Response]).validate_python(data)  # type: ignore
 
     content = json.loads(raw_content.decode(encoding))
 
