@@ -1,15 +1,7 @@
 import time
 from difflib import SequenceMatcher
-
 from cudatext import *
-#from cudax_lib import get_translation
-
 from .util import get_first, lex2langid, ed_uri, get_word
-
-#from .sansio_lsp_client import structs
-
-#_   = get_translation(__file__)  # I18N
-
 import traceback
 import datetime
 

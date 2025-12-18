@@ -45,18 +45,6 @@ from .book import EditorDoc
 
 import urllib.parse
 
-ver = sys.version_info
-if (ver.major, ver.minor) < (3, 7):
-    modules36_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lsp_modules36')
-    #sys.path.append(modules36_dir)
-    # instead of append use insert
-    sys.path.insert(0, modules36_dir)
-
-if (ver.major, ver.minor) > (3, 12):
-    modules313_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lsp_modules313')
-    sys.path.insert(0, modules313_dir)
-
-
 from .sansio_lsp_client import client as lsp
 from .sansio_lsp_client import events
 from .sansio_lsp_client.structs import (
@@ -88,6 +76,8 @@ DEBUG_COMPLETION = False
 DEBUG_MESSAGES = False
 DBG = LOG
 LOG_NAME = 'LSP'
+
+DEBUG_DEV = True
 
 api_ver = app_api_version()
 
@@ -139,6 +129,7 @@ class Language:
     def __init__(self, cfg, cmds=None, lintstr='', underline_style=None, state=None):
         self._shutting_down = None  # scheduled shutdown when not yet initialized
         self.shutdown_start_time = None
+        if DEBUG_DEV: print(">>> DEBUG_DEV cfg:",cfg)
 
         self._last_complete = None
         self._cfg = cfg
@@ -152,6 +143,7 @@ class Language:
         self._server_cmd = cfg.get(CMD_OS_KEY)
         self._tcp_port = cfg.get('tcp_port') # None => use Popen
         self._work_dir = cfg.get('work_dir')
+        if DEBUG_DEV: print(">>> DEBUG_DEV _work_dir",self._work_dir)
         # paths to add to env  -- {var_name: list[paths]}
         self._env_paths = cfg.get('env_paths')
         self._log_stderr = bool(cfg.get('log_stderr'))
@@ -422,34 +414,48 @@ class Language:
                     self.exit(process_queues=False)
 
             # read Queue
-            errors = []
             while not self._read_q.empty():
                 data = self._read_q.get()
 
-                events = self.client.recv(data, errors=errors)
+                # recv now returns an iterator, so we must iterate manually to handle errors. consume the recv generator with proper error handling
+                event_iter = self.client.recv(data)
+                while True:
+                    try:
+                        msg = next(event_iter)
+                    except StopIteration:
+                        # Normal end of generator
+                        break
+                    except Exception as err:
+                        # Error during message parsing (inside generator)
+                        limit = 100 # limit characters of the error message
+                        err_str = str(err)
+                        if len(err_str) > limit:
+                            err_str = err_str[:limit] + '...'
+                        msg_status(f'{LOG_NAME}: {self.lang_str}: unsupported msg: {err_str}')
+                        pass;       LOG and self.plog.log_str(f'{err}', type_='dbg', severity=SEVERITY_ERR)
+                        
+                        if DEBUG_MESSAGES:
+                            if err and hasattr(err, 'args') and err.args and hasattr(err.args[0], 'dict'):
+                                response_error_dict = err.args[0].dict()
+                                UnsupportedMessage = type('Unsupported Message!', (object,), {
+                                    'dict': lambda _: response_error_dict,
+                                    '__str__': lambda _: str(response_error_dict),
+                                })
+                                self._dbg_msgs = (self._dbg_msgs + [UnsupportedMessage()])[-128:]
+                        # If an error occurs inside the generator, it terminates. 
+                        # Remaining data is left in _recv_buf as per client.py logic.
+                        break  # Generator is terminated
+                    
+                    # Now handle the message - with separate error handling
+                    try:
+                        self._on_lsp_msg(msg)
+                    except Exception as err:
+                        # Error during message processing
+                        print(f'ERROR: LSP Message handler error: {LOG_NAME}: {self.lang_str} - {err}')
+                        pass;       LOG and traceback.print_exc()
+                        # Continue processing next message (don't break)
 
-                limit = 100 # limit characters of the error message
-                for err in errors:
-                    err_str = str(err)
-                    if len(err_str) > limit:
-                        err_str = err_str[:limit] + '...'
-                    msg_status(f'{LOG_NAME}: {self.lang_str}: unsupported msg: {err_str}')
-                    pass;       LOG and self.plog.log_str(f'{err}', type_='dbg', severity=SEVERITY_ERR)
-                    if DEBUG_MESSAGES:
-                        if err and hasattr(err, 'args') and err.args and hasattr(err.args[0], 'dict'):
-                            response_error_dict = err.args[0].dict()
-                            UnsupportedMessage = type('Unsupported Message!', (object,), {
-                                'dict':lambda _: response_error_dict,
-                                '__str__':lambda _: str(response_error_dict),
-                            })
-                            self._dbg_msgs = (self._dbg_msgs + [UnsupportedMessage()])[-128:]
-
-                errors.clear()
-
-                for msg in events:
-                    self._on_lsp_msg(msg)
-
-            # send Quue
+            # send Queue
             send_buf = self.client.send()
             if send_buf:
                 self._send_q.put(send_buf)
@@ -1184,7 +1190,7 @@ class Language:
                 if range_:
                     docid = eddoc.get_docid()
                     options = eddoc.get_ed_format_opts()
-                    id = self.client.range_formatting(text_document=docid, range=range_, options=options)
+                    id = self.client.rangeFormatting(text_document=docid, range=range_, options=options)
                     self._save_req_pos(id=id, eddoc=eddoc, target_pos_caret=None) # save current editor handle
 
 
@@ -1197,7 +1203,7 @@ class Language:
                 self.send_changes(eddoc) # for later: server can give edits on save
 
                 docid = eddoc.get_docid()
-                id = self.client.doc_symbol(docid)
+                id = self.client.documentSymbol(docid)
 
                 self._save_req_pos(id=id, eddoc=eddoc, target_pos_caret=None) # save current editor handle
                 self.process_queues()
@@ -1207,7 +1213,7 @@ class Language:
         self.send_changes(eddoc)
 
         docpos = eddoc.get_docpos()
-        id = self.client.call_hierarchy_in(docpos)
+        id = self.client.prepareCallHierarchy(docpos)
 
 
     def workspace_symbol(self, eddoc):
@@ -1792,6 +1798,10 @@ class ServerConfig:
         # 'textDocument/didOpen' => 'didopen'
         supported_names = {reg.method.split('/')[-1].lower() for reg in self.capabs}
         res = {**cmds}
+        if DEBUG_DEV:
+            print(">>> DEBUG_DEV capabs",self.capabs)
+            print(">>> DEBUG_DEV supported_names",supported_names)
+            print(">>> DEBUG_DEV res",res)
         for name in cmds:
             # 'Type definition' => 'typedefinition'
             name_tmp = name.lower().replace(' ', '')
