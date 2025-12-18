@@ -55,8 +55,6 @@ from .structs import (
     Id,
     JSONDict,
     JSONList,
-    Location,
-    LocationLink,
     MWorkDoneProgressKind,
     Range,
     Request,
@@ -291,7 +289,7 @@ class Client:
                     'items': response.result,
                 }
             
-            ## ! parse_obj is expensive and not really needed.
+            ## ! parse_obj/model_validate is expensive and not really needed.
             #try:
             #    completion_list = CompletionList.model_validate(response.result)
             #except ValidationError:
@@ -330,11 +328,17 @@ class Client:
             if response.result is not None:
                 event = SignatureHelp.model_validate(response.result)
             else:
-                event = SignatureHelp(signatures=[])
+                event = SignatureHelp(signatures=[])  # null response
             event.message_id = response.id
 
         elif method == "textDocument/documentSymbol":
-            event = TypeAdapter(MDocumentSymbols).validate_python(response)
+            event = MDocumentSymbols(
+                message_id=response.id,
+                result=response.result if response.result is not None else [],
+            )
+
+        elif method == "textDocument/inlayHint":
+            event = TypeAdapter(MInlayHints).validate_python(response)
             event.message_id = response.id
 
         elif method == "textDocument/rename":
@@ -355,46 +359,66 @@ class Client:
                     event = WorkspaceEdit(message_id=response.id)
             else:
                 event = WorkspaceEdit(message_id=response.id)
-                
+
         elif method == "textDocument/semanticTokens/full":
-            event = TypeAdapter(SemanticTokens).validate_python(response.result)
+            if response.result is None:
+                event = SemanticTokens(data=[])
+            else:
+                event = SemanticTokens.model_validate(response.result)
             event.message_id = response.id
 
         #GOTOs
         elif method == "textDocument/definition":
-            event = TypeAdapter(Definition).validate_python(response)
+            event = TypeAdapter(Definition).validate_python(
+                {"result": response.result}
+            )
             event.message_id = response.id
 
         elif method == "textDocument/references":
-            event = TypeAdapter(References).validate_python(response)
-            event.message_id = response.id
+            event = TypeAdapter(References).validate_python(
+                {"result": response.result}
+            )
+
         elif method == "textDocument/implementation":
-            event = TypeAdapter(Implementation).validate_python(response)
-            event.message_id = response.id
+            event = TypeAdapter(Implementation).validate_python(
+                {"result": response.result}
+            )
+
         elif method == "textDocument/declaration":
-            event = TypeAdapter(Declaration).validate_python(response)
-            event.message_id = response.id
+            event = TypeAdapter(Declaration).validate_python(
+                {"result": response.result}
+            )
+
         elif method == "textDocument/typeDefinition":
-            event = TypeAdapter(TypeDefinition).validate_python(response)
-            event.message_id = response.id
+            event = TypeAdapter(TypeDefinition).validate_python(
+                {"result": response.result}
+            )
 
         elif method == "textDocument/prepareCallHierarchy":
-            event = TypeAdapter(MCallHierarchItems).validate_python(response)
+            event = TypeAdapter(MCallHierarchItems).validate_python(
+                {"result": response.result}
+            )
 
-        elif (method == "textDocument/formatting"
-                or method == "textDocument/rangeFormatting"):
-            event = TypeAdapter(DocumentFormatting).validate_python(response)
-            event.message_id = response.id
+        elif method in ("textDocument/formatting", "textDocument/rangeFormatting"):
+            event = TypeAdapter(DocumentFormatting).validate_python(
+                {"result": response.result}
+            )
 
         # WORKSPACE
         elif method == "workspace/symbol":
-            event = TypeAdapter(MWorkspaceSymbols).validate_python(response)
+            event = TypeAdapter(MWorkspaceSymbols).validate_python(
+                {"result": response.result}
+            )
 
         elif method == "o#/metadata":
-            event = Metadata(message_id=response.id, result=response.result)
+            metadata_result = response.result if isinstance(response.result, dict) else None
+            event = Metadata(message_id=response.id, result=metadata_result)
 
         else:
             raise NotImplementedError((response, request))
+
+        if isinstance(event, MethodResponse):
+            event.message_id = response.id
 
         return event
 
@@ -408,7 +432,10 @@ class Client:
                 event._client = self
                 return event
             elif issubclass(event_cls, ServerNotification):
-                return TypeAdapter(event_cls).validate_python(request.params)
+                if isinstance(request.params, dict):
+                    return TypeAdapter(event_cls).validate_python(request.params)
+                else:
+                    return TypeAdapter(event_cls).validate_python({})
             else:
                 raise TypeError(
                     "`event_cls` must be a subclass of ServerRequest"
@@ -425,22 +452,37 @@ class Client:
             event._client = self
             return event
         elif request.method == "workspace/configuration":
-            return parse_request(ConfigurationRequest)
-
+            event = parse_request(ConfigurationRequest)
+            assert isinstance(event, ConfigurationRequest)
+            return event
+        elif request.method == "workspace/projectInitializationComplete":
+            event = parse_request(WorkspaceProjectInitializationComplete)
+            assert isinstance(event, WorkspaceProjectInitializationComplete)
+            return event
         elif request.method == "window/showMessage":
-            return parse_request(ShowMessage)
+            event = parse_request(ShowMessage)
+            assert isinstance(event, ShowMessage)
+            return event
         elif request.method == "window/showMessageRequest":
-            return parse_request(ShowMessageRequest)
+            event = parse_request(ShowMessageRequest)
+            assert isinstance(event, ShowMessageRequest)
+            return event
         elif request.method == "window/logMessage":
-            return parse_request(LogMessage)
-
+            event = parse_request(LogMessage)
+            assert isinstance(event, LogMessage)
+            return event
         elif request.method == "textDocument/publishDiagnostics":
-            return parse_request(PublishDiagnostics)
-
+            event = parse_request(PublishDiagnostics)
+            assert isinstance(event, PublishDiagnostics)
+            return event
         elif request.method == "window/workDoneProgress/create":
             ev = parse_request(WorkDoneProgressCreate)
             self._progress_tokens_map[request.params['token']] = WorkDoneProgress
             return parse_request(WorkDoneProgressCreate)
+        elif request.method == "client/registerCapability":
+            event = parse_request(RegisterCapabilityRequest)
+            assert isinstance(event, RegisterCapabilityRequest)
+            return event
 
         elif request.method == "$/progress":
             progress_type = self._progress_tokens_map.get(request.params['token'])
@@ -449,6 +491,7 @@ class Client:
             # pretend it actually was already recieved. i think there is no harm in that.
             # such server bugs must be silently ignored without crashing our plugin.
             if progress_type is None:
+                # Gracefully handle servers that forget to send workDoneProgress/create
                 self._progress_tokens_map[request.params['token']] = WorkDoneProgress
                 progress_type = WorkDoneProgress
 
@@ -461,16 +504,17 @@ class Client:
                 elif kind == MWorkDoneProgressKind.REPORT:
                     return parse_request(WorkDoneProgressReport)
                 elif kind == MWorkDoneProgressKind.END:
-                    del self._progress_tokens_map[request.params["token"]]
+                    del self._progress_tokens_map[request.params["token"]] # prevent the dictionary from growing indefinitely.
                     return parse_request(WorkDoneProgressEnd)
+                else:
+                    raise ValueError(f"Unknown progress kind: {kind}")
 
-        elif request.method == "client/registerCapability":
-            return parse_request(RegisterCapabilityRequest)
+
 
         else:
             raise NotImplementedError(request)
 
-    def recv(self, data: bytes, errors: t.Optional[list] = None) -> t.List[Event]:
+    def recv(self, data: bytes, errors: t.Optional[t.List[Exception]] = None) -> t.List[Event]:
         self._recv_buf += data
 
         # _parse_messages deletes consumed data from self._recv_buf
@@ -484,10 +528,10 @@ class Client:
                 elif isinstance(message, Request):
                     events.append(self._handle_request(message))
                 else:
-                    raise RuntimeError("nobody will ever see this, i hope")
-            except Exception as ex:
+                    raise RuntimeError("Unexpected message type")
+            except Exception as exc:
                 if errors is not None:
-                    errors.append(ex)
+                    errors.append(exc)
 
         return events
 
@@ -599,13 +643,10 @@ class Client:
             } )
         return self._send_request(method="textDocument/completion", params=params)
 
-# NEW #####################
-
     def semantic_tokens(
-            self,
-            text_document: TextDocumentIdentifier,
-            # WorkDoneProgressParams
-    ) -> int:
+        self,
+        text_document: TextDocumentIdentifier,
+    ) -> Id:
         assert self._state == ClientState.NORMAL
         return self._send_request(
             method="textDocument/semanticTokens/full",

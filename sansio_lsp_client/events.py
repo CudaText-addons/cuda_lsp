@@ -162,6 +162,7 @@ class Hover(MethodResponse):
 
     # DBG
     def m_str(self):
+        """Return hover contents as markdown-compatible string."""
         def item_str(item): #SKIP
             if isinstance(item, MarkedString):
                 return f'[{item.language}]\n{item.value}'
