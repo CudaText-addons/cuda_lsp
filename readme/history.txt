@@ -1,5 +1,9 @@
 2026.07.08
 - fix: avoid deprecated API: PROP_SCROLL_HORZ (by Alexey T.)
+* change: migrated Pydantic module to version 2 (change by @badrelmers)
+* change: on non-Windows OS you must install these Python modules system-wide: "pydantic" and "wcmatch"; use terminal commands like:
+  $ pip install pydantic
+  $ pip install wcmatch
 
 2025.11.19
 - fix: avoid deprecated API: MARKERS_GET (by Alexey T.)
