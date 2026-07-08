@@ -1,11 +1,11 @@
 import os
+import sys
 import time
 
-import sys
 _plugin_dir = os.path.dirname(os.path.realpath(__file__))
-#sys.path.append(os.path.join(_plugin_dir, 'lsp_modules'))
-# instead of append use insert
-sys.path.insert(0, os.path.join(_plugin_dir, 'lsp_modules'))
+
+if os.name=='nt': # on Unix-like, user needs installation of all modules into OS Python
+    sys.path.insert(0, os.path.join(_plugin_dir, 'lsp_modules'))
 
 from cudatext import *
 from cudax_lib import _json_loads
