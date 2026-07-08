@@ -1,5 +1,8 @@
+2026.07.08
+- fix: avoid deprecated API: PROP_SCROLL_HORZ (by Alexey T.)
+
 2025.11.19
-- fix: avoid deprecated API: MARKERS_GET (by Alexey)
+- fix: avoid deprecated API: MARKERS_GET (by Alexey T.)
 
 2025.11.09 (by @badrelmers)
 + add: support 'fuzzy matching' in LSP auto-completion list

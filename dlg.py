@@ -172,7 +172,7 @@ class Hint:
 
             cls.ed.set_text_all(text)
             cls.ed.set_prop(PROP_LINE_TOP, 0)
-            cls.ed.set_prop(PROP_SCROLL_HORZ, 0)
+            cls.ed.set_prop(PROP_SCROLL_HORZ_INFO, {'pos': 0})
         finally:
             cls.ed.set_prop(PROP_RO, True)
 
@@ -994,7 +994,7 @@ class SignaturesDialog:
                         break
                     pos += len(part)+1
         cls.memo.set_prop(PROP_LINE_TOP, 0)
-        cls.memo.set_prop(PROP_SCROLL_HORZ, 0)
+        cls.memo.set_prop(PROP_SCROLL_HORZ_INFO, {'pos': 0})
         cls.memo.set_prop(PROP_RO, True)
 
     @classmethod
