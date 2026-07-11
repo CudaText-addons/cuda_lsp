@@ -19,6 +19,31 @@ All these features can also be called from menu "Plugins / LSP Client" or from e
 Command Palette (menu "Help / Command palette").
 
 
+Dependencies (Python modules)
+-----------------------------
+
+Dependencies on Windows.
+
+Plugin needs "pydantic" module version 2.
+For Python 3.8, it is preinstalled in the plugin's subfolder "py\cuda_lsp\lsp_modules".
+For other Python versions, download this module from PyPI.org and put it into proper
+subfolder:
+- py\cuda_lsp\lsp_modules\pydantic
+- py\cuda_lsp\lsp_modules\pydantic_core
+
+Dependancies on Linux and Unix-like OS.
+
+Plugin needs additional Python modules installed into OS Python:
+- pydantic (version 2)
+- wcmatch
+- bracex
+
+Typical installation from terminal is:
+$ pip install pydantic
+$ pip install wcmatch
+$ pip install bracex
+
+
 Example for Python
 ------------------
 Python LSP server can be installed in the Linux by command:
