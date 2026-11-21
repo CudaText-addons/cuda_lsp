@@ -1,3 +1,7 @@
+2026.11.21
+- fix: avoid deprecated API: app_idle
+- fix: avoid deprecated API: get_filename
+
 2026.07.08
 - fix: avoid deprecated API: PROP_SCROLL_HORZ (by Alexey T.)
 * change: migrated Pydantic module to version 2 (change by @badrelmers)

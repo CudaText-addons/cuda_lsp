@@ -858,7 +858,7 @@ class SignaturesDialog:
 
             wrapped_lines = 0
             while True:
-                app_idle()
+                app_proc(PROC_IDLE, '')
                 if cls.wrap_info_loaded:
                     wrap_info = cls.memo.get_wrapinfo()
                     wrapped_lines = max(1, len(wrap_info))

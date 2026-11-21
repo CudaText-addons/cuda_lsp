@@ -93,9 +93,9 @@ def path_to_uri(path):
     return pathlib.Path(path).as_uri()
 
 def ed_uri(ed):
-    fn = ed.get_filename('*') # '*' get filepath for image/binary tabs too
+    fn = ed.get_prop(ct.PROP_FN, '*') # '*' get filepath for image/binary tabs too
     if fn:
-        #return 'file://'+ed.get_filename()
+        #return 'file://'+ed.get_prop(ct.PROP_FN, '')
         return path_to_uri(fn)
     else:
         return 'file:///'+ed.get_prop(ct.PROP_TAB_TITLE).lstrip('*')

@@ -315,7 +315,7 @@ class Command:
             print(ex)
             return
 
-        pass;       LOG and print(f'on_open: lex, langid, filename:{lex, langid, ed_self.get_filename()} =>> lang:{lang.name if lang else "none"}')
+        pass;       LOG and print(f'on_open: lex, langid, filename:{lex, langid, ed_self.get_prop(PROP_FN, "")} =>> lang:{lang.name if lang else "none"}')
 
         # if have server for this lexer
         if lang:
@@ -759,7 +759,7 @@ class Command:
 
         _langid = lex2langid(ed_self.get_prop(PROP_LEXER_FILE))
         lang = self._get_lang(ed_self, _langid) # uses dynamic server registrationed
-        pass;       LOG and print(f'manual didopen: lex, langid, filename:{_langid, ed_self.get_filename()} =>> lang:{lang.name if lang else "none"}')
+        pass;       #LOG and print(f'manual didopen: lex, langid, filename:{_langid, ed_self.get_prop(PROP_FN, "")} =>> lang:{lang.name if lang else "none"}')
 
         self.book.new_doc(ed_self)
         doc = self.book.get_doc(ed_self)

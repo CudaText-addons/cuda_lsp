@@ -94,7 +94,7 @@ class Placeholder:
 
 class VariableState:
     def __init__(self, ed: ct.Editor):
-        self.fp = ed.get_filename()
+        self.fp = ed.get_prop(ct.PROP_FN, '')
         if op.exists(self.fp):
             self.fn = op.basename(self.fp)
             self.fdir = op.dirname(self.fp)
@@ -352,7 +352,7 @@ class Snippet:
             _ln = ""
             for p in RE_CMD.finditer(ln):
                 text = p.group(1)
-                cwd = os.path.dirname(ct.ed.get_filename()) or os.getcwd()
+                cwd = os.path.dirname(ct.ed.get_prop(ct.PROP_FN, '')) or os.getcwd()
                 text = check_output(text, cwd=cwd, shell=True).decode("utf-8")
                 _ln += ln[start:p.start(0)] + text
                 start = p.end(0)
