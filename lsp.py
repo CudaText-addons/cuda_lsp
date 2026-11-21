@@ -315,7 +315,10 @@ class Command:
             print(ex)
             return
 
-        pass;       LOG and print(f'on_open: lex, langid, filename:{lex, langid, ed_self.get_prop(PROP_FN, "")} =>> lang:{lang.name if lang else "none"}')
+        pass;
+        fname = ed_self.get_prop(PROP_FN, '')
+        langname = lang.name if lang else "none"
+        LOG and print(f'on_open: lex, langid, filename:{lex, langid, fname} =>> lang:{langname}')
 
         # if have server for this lexer
         if lang:
